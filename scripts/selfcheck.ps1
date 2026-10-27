@@ -1,4 +1,4 @@
-﻿# selfcheck.ps1 — 一眼看清自己站在什么环境里
+# selfcheck.ps1 — 一眼看清自己站在什么环境里
 # 用法： powershell -NoProfile -File .\selfcheck.ps1
 # 改下面「配置区」的路径即可，其余不用动。
 $ErrorActionPreference = 'Continue'
@@ -14,6 +14,7 @@ $Config = @{
     BackupDirs  = @('F:\Tools\coo-backup', 'D:\coo-backup')
     Drives      = @('C:', 'D:', 'F:')
     NotebookDir = 'F:\Tools\coo-day1'
+    WakeMark    = 'F:\Tools\coo-day1\track\wake-last.txt'   # wake.ps1 留的时间戳
 }
 # =================================
 
@@ -31,15 +32,12 @@ if ($Config.AppDir) {
 
 # 扩展 / world 加载情况
 if ($Config.AppLog -and (Test-Path $Config.AppLog)) {
-    $lines = Get-Content $Config.AppLog -Tail 400 -Encoding UTF8
-    # 用「console」作为一次启动的锚点，之前之后都属于同一次加载
-    $s = ($lines | Select-String -Pattern 'World 已启动: console' | Select-Object -Last 1).LineNumber
-    if (-not $s) { $s = ($lines | Select-String -Pattern 'World 已启动: ' | Select-Object -First 1).LineNumber }
-    if ($s) {
-        $w = $lines[($s - 1)..($lines.Count - 1)] | Select-String -Pattern 'World 已启动: ' |
-             ForEach-Object { ($_.Line -split 'World 已启动: ')[1] } | Where-Object { $_ }
-        if ($w) { L '扩展' ("$($w.Count) 个：" + ($w -join ',')) }
-    }
+    # 不设锚点：宿主会多次重启 core，任何单一锚点都会漏（console / core已启动 都踩过）
+    $lines = Get-Content $Config.AppLog -Tail 2000 -Encoding UTF8
+    $w = $lines | Select-String -Pattern 'World 已启动: ' |
+         ForEach-Object { ($_.Line -split 'World 已启动: ')[1] } |
+         Where-Object { $_ } | Select-Object -Unique
+    if ($w) { L '扩展' ("$($w.Count) 个：" + ($w -join ',')) }
 }
 
 # 工具版本
@@ -66,6 +64,16 @@ foreach ($d in $Config.BackupDirs) {
 foreach ($d in $Config.Drives) {
     $v = Get-PSDrive ($d.TrimEnd(':')) -ErrorAction SilentlyContinue
     if ($v) { L ('磁盘 ' + $d) ("剩 {0:N1} GB" -f ($v.Free / 1GB)) }
+}
+
+# 最近醒来：wake.ps1 的留痕。用来核对「核心层到底读没读」——没有机制，规矩就是空话
+$wakeMark = $Config.WakeMark
+if ($wakeMark -and (Test-Path $wakeMark)) {
+    $w = (Get-Content $wakeMark -Encoding UTF8 -TotalCount 1)
+    $hours = ((Get-Date) - (Get-Item $wakeMark).LastWriteTime).TotalHours
+    if ($hours -gt 12) { L '最近醒来' ("$w  (${hours:N0} 小时前，偏旧)") } else { L '最近醒来' $w }
+} elseif ($wakeMark) {
+    L '最近醒来' '没跑过 wake.ps1（核心层未读）'
 }
 
 $out | ForEach-Object { Write-Host $_ }

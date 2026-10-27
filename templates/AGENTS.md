@@ -3,9 +3,18 @@
 以下三条是底层习惯，不依赖记忆，每次会话都要执行。
 路径按你自己的改。
 
-## 开工：先自检
+## 开工：先读核心层，再自检
 
-在做任何创作或操作之前，先跑：
+第一件事跑 `wake.ps1`，它读核心层（0-核心）并留一个时间戳：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File <你的路径>\wake.ps1
+```
+
+**为什么要留时间戳**：只写「每次必读」是空话。时间戳能被 `selfcheck.ps1` 查出来，
+跳过这一步会显示「核心层未读」或「偏旧」——规矩要有能被核对的出口。
+
+然后自检：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File <你的路径>\selfcheck.ps1
