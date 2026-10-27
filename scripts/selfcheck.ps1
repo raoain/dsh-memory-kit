@@ -1,4 +1,4 @@
-# selfcheck.ps1 — 一眼看清自己站在什么环境里
+﻿# selfcheck.ps1 — 一眼看清自己站在什么环境里
 # 用法： powershell -NoProfile -File .\selfcheck.ps1
 # 改下面「配置区」的路径即可，其余不用动。
 $ErrorActionPreference = 'Continue'

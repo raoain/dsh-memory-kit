@@ -1,4 +1,4 @@
-# backup.ps1 — 把助手的记忆打包，落到两块盘
+﻿# backup.ps1 — 把助手的记忆打包，落到两块盘
 # 用法： powershell -NoProfile -File .\backup.ps1
 #        powershell -NoProfile -File .\backup.ps1 -Keep 14
 param([int]$Keep = 7)
