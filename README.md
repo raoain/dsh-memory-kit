@@ -46,6 +46,40 @@
 
 ## 怎么用
 
+### 第零步：把 git 和 gh 装上（别跳过）
+
+这一步最容易卡住。Windows 上大概率既没有 `git` 也没有 `gh`，而后面的发布、备份、版本回退都依赖它们。
+
+**便携版 git**（约 57 MB，解压即用，不污染系统 PATH）：
+
+```powershell
+# 下载
+curl.exe -sSL -o F:\Tools\portablegit.7z.exe `
+  https://github.com/git-for-windows/git/releases/download/v2.51.0.windows.1/PortableGit-2.51.0-64-bit.7z.exe
+# 解压（-y 覆盖，-o 指定目录）
+F:\Tools\portablegit.7z.exe -y -oF:\Tools\git
+# 验证
+F:\Tools\git\bin\git.exe --version
+```
+
+**gh CLI**（约 18 MB）：
+
+```powershell
+curl.exe -sSL -o F:\Tools\gh.zip `
+  https://github.com/cli/cli/releases/download/v2.83.0/gh_2.83.0_windows_amd64.zip
+Expand-Archive F:\Tools\gh.zip -DestinationPath F:\Tools\_gh
+Copy-Item (Get-ChildItem F:\Tools\_gh -Recurse -Filter gh.exe)[0].FullName F:\Tools\gh\gh.exe
+F:\Tools\gh\gh.exe --version
+```
+
+**登录（设备授权，token 不经过对话）**：
+
+```powershell
+F:\Tools\gh\gh.exe auth login --hostname github.com --git-protocol https --web
+```
+
+它会打印一个 8 位码并打开浏览器，输入码、点 Authorize 即可。凭据存在本机 `gh` 配置里，**不要把 token 贴进聊天记录**——贴了就永久留在里面了。
+
 ### 第一步：把规则放进模型每次都会读的地方
 
 DSH 读 `~/.dsh/AGENTS.md`（全局）和项目里的 `AGENTS.md`。把 `templates/AGENTS.md` 的内容追加进去，改掉路径。
@@ -64,6 +98,25 @@ powershell -NoProfile -File .\scripts\backup.ps1
 ```
 
 看到输出正常，就接上了。
+
+**它应该长这样**（真实输出，路径已脱敏）：
+
+```
+Coopanion      v0.2.12  进程 13
+扩展             21 个：console,desktop-pet,coopanion,gpt-sovits,netease-music,
+                 bilibili,bilibili-video,buckshot,camera,fatfish,gaming,
+                 memcloud,localvision,majsoul,memsearch,netlingo,selfkit,
+                 socialmedia,webpro,webanswer,cua
+bili-cli       bili-agent v1.2.1
+ffmpeg         7.1      ffprobe  9.0.2
+备份 F:          companion-20261027-1152.zip  10-27 11:52
+备份 D:          companion-20261027-1152.zip  10-27 11:52
+磁盘 C:          剩 15.2 GB
+磁盘 D:          剩 32.7 GB
+磁盘 F:          剩 143.1 GB
+```
+
+三个数值得盯：**扩展数量**（少了说明有扩展崩了）、**备份时间**（旧了说明自动保存没跑）、**磁盘**（满了会静默失败）。
 
 ### 第四步：让保存自动化
 
