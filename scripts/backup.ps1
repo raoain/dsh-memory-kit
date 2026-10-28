@@ -4,9 +4,9 @@
 param([int]$Keep = 7)
 
 # ===== 配置区（改成你自己的） =====
-$Source   = 'F:\新建文件夹 (2)\Coopanion\data\home\companion'   # 要备份的记忆目录
-$DestA    = 'F:\Tools\coo-backup'                                # 第一块盘
-$DestB    = 'D:\coo-backup'                                      # 第二块盘（留空则只备一份）
+$Source   = '<应用安装目录>\Coopanion\data\home\companion'   # 要备份的记忆目录
+$DestA    = '<备份盘A>\coo-backup'                                # 第一块盘
+$DestB    = '<备份盘B>\coo-backup'                                      # 第二块盘（留空则只备一份）
 $Prefix   = 'companion'
 $ExtraFiles = @()   # 额外的单文件，不属于上面目录但同样会丢，例如：
                     #   'C:\Users\你\...\memory.db'   检索库

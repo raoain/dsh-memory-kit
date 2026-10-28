@@ -4,8 +4,8 @@
 # 但备份是整包的、笨重；日常小删除（旧稿、废 spec、试坏的封面）值得一个轻量的回收站。
 #
 # 用法：
-#   .\trash.ps1 -Path F:\Tools\coo-day1\old.md                # 移入垃圾桶
-#   .\trash.ps1 -Path F:\Tools\coo-day1\old-dir\              # 目录也行
+#   .\trash.ps1 -Path <你的项目根>\old.md                # 移入垃圾桶
+#   .\trash.ps1 -Path <你的项目根>\old-dir\              # 目录也行
 #   .\trash.ps1 -List                                          # 看里面有什么
 #   .\trash.ps1 -Empty                                         # 清掉超过 30 天的
 #   .\trash.ps1 -Empty -Days 7                                 # 更积极
@@ -17,7 +17,7 @@ param(
     [switch]$Restore,
     [string]$Name,
     [int]$Days = 30,
-    [string]$Root = 'F:\Tools\coo-day1\trash'   # ← 改成你自己的
+    [string]$Root = '<你的项目根>\trash'   # ← 改成你自己的
 )
 
 $ErrorActionPreference = 'Stop'

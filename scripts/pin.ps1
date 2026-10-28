@@ -17,8 +17,8 @@ param(
     [switch]$List,
     [string]$Set,
     [string]$Value,
-    [string]$StateFile = 'F:\Tools\coo-day1\state.json',   # ← 改成你自己的
-    [string]$Root = 'F:\Tools\coo-day1'                   # ← 改成你自己的
+    [string]$StateFile = '<你的项目根>\state.json',   # ← 改成你自己的
+    [string]$Root = '<你的项目根>'                   # ← 改成你自己的
 )
 
 $ErrorActionPreference = 'Continue'

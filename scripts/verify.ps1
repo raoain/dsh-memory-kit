@@ -62,7 +62,7 @@ else {
 }
 
 # 4. 备份：双盘 + 最新时间
-foreach ($d in 'F:\Tools\coo-backup', 'D:\coo-backup') {
+foreach ($d in '<备份盘A>\coo-backup', '<备份盘B>\coo-backup') {
     $latest = Get-ChildItem $d -Filter 'companion-*.zip' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
     if (-not $latest) { Add-Result 'FAIL' "备份 $(Split-Path $d -Qualifier)" '没有备份文件' }
     else {
@@ -111,7 +111,7 @@ if (Test-Path $trash) {
 
 # 9. 可选：联网核查最近发布
 if ($Deep) {
-    $bili = 'F:\Tools\uv\bin\bili.exe'
+    $bili = '<bili路径>'
     if (Test-Path $bili) {
         $out = & $bili upload list 2>&1 | Out-String
         try {

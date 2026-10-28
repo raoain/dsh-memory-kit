@@ -14,7 +14,7 @@
 param(
     [int]$Days = 30,
     [switch]$DryRun,
-    [string]$Root = 'F:\Tools\coo-day1\notebook',   # ← 改成你自己的记事本目录
+    [string]$Root = '<你的项目根>\notebook',   # ← 改成你自己的记事本目录
     [string]$File = '2-档案.md'                       # 档案层文件名
 )
 
