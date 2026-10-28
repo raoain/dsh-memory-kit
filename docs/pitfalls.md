@@ -230,3 +230,18 @@ if ($before -ne $after) { throw '隔离失败：真文件被动了' }
 - 解压/下载后**先断言结果**：目录存在、非空、里面有预期文件
 - 任何递归复制前 `Join-Path` + `Resolve-Path`，校验结果落在预期父目录下
 - 对 `` / 空字符串做显式检查：`if ([string]::IsNullOrWhiteSpace()) { throw }`
+---
+
+## 17. 给 JSON 补 BOM，插件直接变 error
+
+**现象**：插件装好了、文件都在，但 `list_bundles` 里它显示 `availability: error`，diagnostic 写着
+`Unexpected token '﻿', "{ ... is not valid JSON`（那个不可见字符就是 BOM）。
+
+**根因**：`.ps1` 需要 BOM（PowerShell 5.1 会把无 BOM 的 UTF-8 当 GBK 读），但 **JSON 解析器不接受 BOM**。
+把「脚本要补 BOM」的习惯顺手用在 `package.json` 上，整条 bundle 就加载失败。
+
+**修法**：
+
+- **只有 `.ps1` 补 BOM**；`.json` / `.yml` / `.js` 一律存 **UTF-8 无 BOM**
+- 编辑完 `.ps1` 补 BOM、编辑完 `.json` 确认首字节是 `7B`（`{`）而不是 `EF BB BF`
+- 插件加载失败时先看 diagnostic 字段，不要只看界面「异常」
