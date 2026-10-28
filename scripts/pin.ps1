@@ -17,8 +17,8 @@ param(
     [switch]$List,
     [string]$Set,
     [string]$Value,
-    [string]$StateFile = '<你的项目根>\state.json',   # ← 改成你自己的
-    [string]$Root = '<你的项目根>'                   # ← 改成你自己的
+    [string]$StateFile = '<你的项目根>\state.json',
+    [string]$Root = ((Split-Path $PSScriptRoot -Parent))
 )
 
 $ErrorActionPreference = 'Continue'
@@ -56,6 +56,69 @@ function Resolve-Pin($key) {
             $p = Join-Path $Root 'notebook\0-核心.md'
             if (Test-Path $p) { return (Get-Item $p).Length } else { return $null }
         }
+        '^doc\.readme$' { $p = Join-Path $Root 'README.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
+        '^doc\.ruleslog$' { $p = Join-Path $Root 'rules-log.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
+        '^mem\.count$' { $p = Join-Path $Root 'memories.jsonl'; if (Test-Path $p) { return (Select-String -Path $p -Pattern '.' -Encoding UTF8 | Measure-Object).Count } else { return 0 } }
+        '^datalog\.count$' { $p = Join-Path $Root 'heybox\data-log.jsonl'; if (Test-Path $p) { return (Select-String -Path $p -Pattern '.' -Encoding UTF8 | Measure-Object).Count } else { return 0 } }
+        '^sticky\.filled$' {
+            $p = Join-Path $Root 'notebook\1-工作.md'
+            if (-not (Test-Path $p)) { return $null }
+            $t = [IO.File]::ReadAllText($p, [Text.Encoding]::UTF8)
+            $m = [regex]::Match($t, '(?s)<!-- sticky:start -->(.*?)<!-- sticky:end -->')
+            if (-not $m.Success) { return 'missing' }
+            $body = $m.Groups[1].Value
+            $n = 0
+            foreach ($k in @('刚聊到哪', '答应了什么', '下次接着说什么')) { if ($body -match $k) { $n++ } }
+            return "$n/3"
+        }
+        '^sticky\.updated$' {
+            $p = Join-Path $Root 'notebook\1-工作.md'
+            if (-not (Test-Path $p)) { return $null }
+            $t = [IO.File]::ReadAllText($p, [Text.Encoding]::UTF8)
+            $m = [regex]::Match($t, '_更新：(\d{4}-\d{2}-\d{2} \d{2}:\d{2})_')
+            if ($m.Success) { return $m.Groups[1].Value.Substring(0,10) } else { return 'none' }
+        }
+        '^cfg\.pkg$' {
+            $p = Join-Path $env:USERPROFILE '.dsh\profiles\desktop\package.json'
+            if (-not (Test-Path $p)) { return $null }
+            return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0, 16)
+        }
+        '^cfg\.patch$' {
+            $p = Join-Path $env:USERPROFILE '.dsh\profiles\desktop\cordis.patch.yml'
+            if (-not (Test-Path $p)) { return $null }
+            return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0, 16)
+        }
+        '^plug\.index$' {
+            $p = 'F:\Tools\dsh-notebook\lib\index.js'
+            if (-not (Test-Path $p)) { return $null }
+            return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0, 16)
+        }
+        '^archive\.count$' {
+            $p = Join-Path $Root 'notebook\2-档案.md'
+            if (-not (Test-Path $p)) { return $null }
+            return ([regex]::Matches([IO.File]::ReadAllText($p, [Text.Encoding]::UTF8), '(?m)^### ')).Count
+        }
+        # 时间集合哈希：条数不变但某条时间被改/被换，count 抓不到，这里抓
+        '^times\.archive$' {
+            $p = Join-Path $Root 'notebook\2-档案.md'
+            if (-not (Test-Path $p)) { return $null }
+            $t = [IO.File]::ReadAllText($p, [Text.Encoding]::UTF8)
+            $ts = (([regex]::Matches($t, '时间：\s*(\d{4}-\d{2}-\d{2} \d{2}:\d{2})')) | ForEach-Object { $_.Groups[1].Value }) -join '|'
+            return (Get-FileHash -InputStream ([IO.MemoryStream]::new([Text.Encoding]::UTF8.GetBytes($ts))) -Algorithm SHA256).Hash.Substring(0, 16)
+        }
+        '^times\.work$' {
+            $p = Join-Path $Root 'notebook\1-工作.md'
+            if (-not (Test-Path $p)) { return $null }
+            $t = [IO.File]::ReadAllText($p, [Text.Encoding]::UTF8)
+            $ts = (([regex]::Matches($t, '(?m)^- \[(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\]')) | ForEach-Object { $_.Groups[1].Value }) -join '|'
+            return (Get-FileHash -InputStream ([IO.MemoryStream]::new([Text.Encoding]::UTF8.GetBytes($ts))) -Algorithm SHA256).Hash.Substring(0, 16)
+        }
+        '^doc\.(.+)$' {
+            $map = @{ 'AGENTS' = (Join-Path $env:USERPROFILE '.dsh\AGENTS.md'); 'core' = (Join-Path $Root 'notebook\0-核心.md'); 'tomb' = (Join-Path $Root 'notebook\3-墓碑.md') }
+            $p = $map[$Matches[1]]
+            if (-not $p -or -not (Test-Path $p)) { return $null }
+            return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0, 16)
+        }
         '^script\.(.+)$' {
             $name = $Matches[1]
             $p = Join-Path $Root $name
@@ -90,7 +153,16 @@ $defaultPins = @(
     'core.max', 'core.size',
     'tomb.count',
     'script.make-day.ps1', 'script.verify.ps1', 'script.wake.ps1',
-    'script.backup.ps1', 'script.status.ps1', 'script.trash.ps1'
+    'script.backup.ps1', 'script.status.ps1', 'script.trash.ps1',
+    'doc.AGENTS', 'doc.core', 'doc.tomb',
+    'times.archive', 'times.work',
+    'cfg.pkg', 'cfg.patch', 'plug.index', 'archive.count',
+    'script.notebook.ps1', 'script.selfcheck.ps1', 'script.archive-notebook.ps1',
+    'script.work-shrink.ps1', 'script.sticky.ps1', 'sticky.filled', 'sticky.updated',
+    'script.lint.ps1', 'script.pin.ps1', 'script.enable-cua.ps1',
+    'script.fix-bom.ps1',
+    'script.dashboard.ps1', 'script.free-c.ps1', 'script.push-kit.ps1', 'script.show-standby.ps1', 'script.track.ps1',
+    'doc.readme', 'doc.ruleslog', 'mem.count', 'datalog.count'
 )
 
 if ($Init) {
