@@ -8,7 +8,7 @@
 #   .\attrib.ps1 -Path F:\x      # 扫指定目录
 #   .\attrib.ps1 -Quiet          # 只在有问题时输出
 param(
-    [string[]]$Path = @('F:\Tools\coo-day1\notebook'),   # ← 改成你自己的目录
+    [string[]]$Path = @('<你的项目根>\notebook'),   # ← 改成你自己的目录
     [switch]$Quiet
 )
 
