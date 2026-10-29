@@ -5,9 +5,10 @@
 # 修法：把「依据」变成必填，且**当场打开验一次**；打不开就不许记进去（格式强制）。
 #
 # 用法：
-#   .\recall.ps1 -Claim "判断一句话" -Src "notebook\11-结论.md:120"
+#   .\recall.ps1 -Layer 理论 -Claim "判断一句话" -Src "notebook\11-结论.md:120"
 #   .\recall.ps1 -List
 param(
+    [Parameter(Mandatory = $true)][ValidateSet('理论','做法','数据')][string]$Layer,
     [string]$Claim,
     [string]$Src,
     [string]$Evid = '',
@@ -66,6 +67,7 @@ $thatLine = $content[$line - 1]
 
 $rec = [pscustomobject]@{
     time  = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+    layer = $Layer
     claim = $Claim
     src   = $Src
     quote = $thatLine.Trim()
@@ -75,7 +77,7 @@ $rec = [pscustomobject]@{
 
 Write-Host ''
 Write-Host '已记入 读回记录：' -ForegroundColor Green
-Write-Host ("  判断：{0}" -f $rec.claim)
+Write-Host ("  层：{0}  ｜ 判断：{1}" -f $rec.layer, $rec.claim)
 Write-Host ("  依据：{0}" -f $rec.src) -ForegroundColor DarkGray
 Write-Host ("  原文：{0}" -f $rec.quote) -ForegroundColor DarkGray
 exit 0

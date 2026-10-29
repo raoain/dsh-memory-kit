@@ -18,7 +18,7 @@ Write-Host '=== 收工：先量，再记 ===' -ForegroundColor Cyan
 $verifyLine = ''
 try {
     $vout = powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'verify.ps1') 2>&1 | Out-String
-    $m = [regex]::Match($vout, '\d+ 项：.*')
+    $m = [regex]::Match($vout, '\d+ 项：OK \d+[^\r\n]*')
     if ($m.Success) { $verifyLine = $m.Value.Trim() } else { $verifyLine = 'verify 没给出汇总行' }
 } catch { $verifyLine = 'verify 跑不起来' }
 
@@ -53,7 +53,7 @@ Write-Host ("  今日发布：{0} 篇 ｜ 核心层 {1} B" -f $pubCount, $coreSi
 
 # 4) 自动记一条工作层（事实 + 可选理由）
 $auto = '收工（自动记事实）'
-if ($Text) { $auto = "收工：$Text" }
+if ($Text) { if ($Text.StartsWith('收工')) { $auto = $Text } else { $auto = "收工：$Text" } }
 $evid = "证: $verifyLine ｜ $pinLine ｜ 今日发布 $pubCount 篇 ｜ 核心层 $coreSize B"
 try {
     powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'log.ps1') -Text $auto -Evid $evid 2>&1 |
