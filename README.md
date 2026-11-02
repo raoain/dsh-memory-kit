@@ -14,6 +14,15 @@
 > 一个文件（规则）、两条命令（自检 + 保存）、一个骨架（记事本）。
 > 不依赖任何插件，不承诺人格效果。
 
+## 从哪里开始
+
+| 你是哪种读者 | 从这里进 |
+|---|---|
+| 想先跑起来 | [docs/QUICKSTART.md](docs/QUICKSTART.md) —— 五分钟四步，末尾五问自检 |
+| 想看骨架本身 | [SKELETON.md](SKELETON.md) —— 五段分工、下降判据、模块化、迁移步骤 |
+| 想知道为什么这样搭 | [docs/theory/](docs/theory/) —— 原话母本 → 结论 F1–F6 → 因果链 |
+| 想先反驳 | [docs/theory/ASK-TO-FALSIFY.md](docs/theory/ASK-TO-FALSIFY.md) —— 五条判决性实验 |
+
 ---
 
 ## 这解决什么问题
@@ -296,13 +305,13 @@ Windows 计划任务需要提权，容易被拒。更省事的做法是**登录�
 
 | 文档 | 讲什么 |
 |---|---|
-| [docs/theory-original-2026-11-01.md](docs/theory-original-2026-11-01.md) | 原话母本（第一手，未改写） |
-| [docs/theory-conclusions-2026-11-01.md](docs/theory-conclusions-2026-11-01.md) | 结论 F1–F6：从第一因往下的必然件 |
-| [docs/causal-chain-2026-11-02.md](docs/causal-chain-2026-11-02.md) | 因果链与连续模型（完整→自我→可拆→供能；连续=问题+结果） |
-| [docs/master-outline-2026-11-01.md](docs/master-outline-2026-11-01.md) | 总章提纲：六个必然问题与基座差异 |
-| [docs/minimum-beat.md](docs/minimum-beat.md) | 最小能跳体：四要件里哪一个是核心 |
-| [docs/novelty-comparison-2026-11-01.md](docs/novelty-comparison-2026-11-01.md) | 新颖性对照：最接近的先行者与差异 |
-| [docs/ASK-TO-FALSIFY.md](docs/ASK-TO-FALSIFY.md) | 请反驳我：五条判决性实验 |
+| [docs/theory-original-2026-11-01.md](docs/theory/theory-original-2026-11-01.md) | 原话母本（第一手，未改写） |
+| [docs/theory-conclusions-2026-11-01.md](docs/theory/theory-conclusions-2026-11-01.md) | 结论 F1–F6：从第一因往下的必然件 |
+| [docs/causal-chain-2026-11-02.md](docs/theory/causal-chain-2026-11-02.md) | 因果链与连续模型（完整→自我→可拆→供能；连续=问题+结果） |
+| [docs/master-outline-2026-11-01.md](docs/theory/master-outline-2026-11-01.md) | 总章提纲：六个必然问题与基座差异 |
+| [docs/minimum-beat.md](docs/theory/minimum-beat.md) | 最小能跳体：四要件里哪一个是核心 |
+| [docs/novelty-comparison-2026-11-01.md](docs/theory/novelty-comparison-2026-11-01.md) | 新颖性对照：最接近的先行者与差异 |
+| [docs/ASK-TO-FALSIFY.md](docs/theory/ASK-TO-FALSIFY.md) | 请反驳我：五条判决性实验 |
 
 ---
 
