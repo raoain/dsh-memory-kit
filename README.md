@@ -290,6 +290,22 @@ Windows 计划任务需要提权，容易被拒。更省事的做法是**登录�
 
 ---
 
+## 理论：为什么这样搭
+
+这一页讲怎么用；**为什么必须这样搭**在这几份文档里。按读的顺序：
+
+| 文档 | 讲什么 |
+|---|---|
+| [docs/theory-original-2026-11-01.md](docs/theory-original-2026-11-01.md) | 原话母本（第一手，未改写） |
+| [docs/theory-conclusions-2026-11-01.md](docs/theory-conclusions-2026-11-01.md) | 结论 F1–F6：从第一因往下的必然件 |
+| [docs/causal-chain-2026-11-02.md](docs/causal-chain-2026-11-02.md) | 因果链与连续模型（完整→自我→可拆→供能；连续=问题+结果） |
+| [docs/master-outline-2026-11-01.md](docs/master-outline-2026-11-01.md) | 总章提纲：六个必然问题与基座差异 |
+| [docs/minimum-beat.md](docs/minimum-beat.md) | 最小能跳体：四要件里哪一个是核心 |
+| [docs/novelty-comparison-2026-11-01.md](docs/novelty-comparison-2026-11-01.md) | 新颖性对照：最接近的先行者与差异 |
+| [docs/ASK-TO-FALSIFY.md](docs/ASK-TO-FALSIFY.md) | 请反驳我：五条判决性实验 |
+
+---
+
 ## 边界（写在前面）
 
 - 这**不是**人格方案。它只保证「记忆不丢」，不保证「人格成长」。
