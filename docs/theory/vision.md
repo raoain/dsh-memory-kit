@@ -24,6 +24,9 @@
 > 一句话：**他们的词和我们一样，指的不是同一件事。**
 > One line: **the same words, pointing at different things.**
 
+> 本页不重复但默认的五个必要件（见 `causal-chain-2026-11-02.md`）：**完整 → 自我 → 可拆 → 供能**（同一性贯穿），以及第一因「会跳、会断」。
+> Five necessary conditions assumed here (see `causal-chain-2026-11-02.md`): **complete → self → decomposable → powered** (identity runs through all of them), grounded in the first cause "it beats, it can break".
+
 ---
 
 ## 一、硅基不是「硅基的人」 / Silicon Is Not a "Silicon Human"
