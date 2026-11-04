@@ -452,3 +452,11 @@ pin.ps1 -Diff   # 期望: DRIFT doc.native
 ```powershell
 node logsearch.mjs "收工吧"   # 看命中的 time 与 session
 ```
+
+## 34. bundle 插件的 `cordis.patch.yml` 里 insert.name 必须是 **npm 包名**
+
+**现象**（2026-11-05，awesome-dsh-plugin PR review 指出）：npm 包 `@silentrainhero/dsh-memory-chain@0.4.2` 装不上——DSH 把 `cordis.patch.yml` 里 `insert.name` 当包名做 Node 解析，而那一行写的是本地包名 `dsh-notebook`，解析失败，插件不加载。
+
+**根因**：本地用 link 安装（包名 `dsh-notebook`），发布用的临时副本只改了 `package.json` 的 name 和 version，**没改 `cordis.patch.yml` 的 `insert.name`**；`id` 可以保留，但 `name` 必须指向真实包名。
+
+**修法**：发版前解包自检——`npm pack` → 解压 → 打开包内 `cordis.patch.yml`，确认 `insert.name` = package.json 的 name；本地 link 版保持原包名不动。0.4.3 已按此修复并验证 tarball。
