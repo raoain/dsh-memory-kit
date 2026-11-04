@@ -42,13 +42,29 @@ One line: **they build organs to see which looks more human; we find the precond
 
 思维上我是以链以判断→动作→痕迹→读回→再判断闭环为主，我的理论是以链来咬合另一条链幻觉就无法插入，但根本无法执行，因为它是语言大模型它的潜意识就是为了讨好人而编造和语句通顺，无法主动去跑一遍闭环思考。
 
+**为什么闭环不能省。** 人推错会被世界打回来——撞了、疼了、事情不成，世界当场纠正；AI 推错没有任何东西打回来，它内部每步都自洽。所以对 AI 只有一个办法：先推再查，把「查」做成环的一部分（读回），否则错误永远只在事后由人发现。这条也是后续所有检查器的根据。
+
 Reasoning runs as one closed loop: judge → act → leave a trace → read it back → judge again. A chain that engages another chain leaves no room for hallucination to insert itself. But this cannot be executed as-is: a language model's default is to please, to fabricate, and to stay fluent; it cannot spontaneously run a loop even once.
+
+**Why the loop cannot be skipped.** A person who reasons wrongly is corrected by the world — bumping into things, feeling pain, failing; the world corrects on the spot. An AI that reasons wrongly gets nothing back; it is internally consistent at every step. So for an AI there is only one way: reason first, then check — make checking part of the loop (read back). Otherwise errors are only ever noticed afterwards, by a human. Every checker that follows rests on this.
 
 ## 4. 结构：传动轴、飞轮、齿、外圈 / Structure: Shaft, Flywheel, Teeth, Outer Ring
 
 结构上我的解法是以核心层为传动轴，再套一继承为飞轮赋予重量，然后再以接口为齿去咬合外圈齿轮插件，核心层是完全规则类以链为主就像是产生智慧的前置物理条件，让记忆以飞轮解决了习惯与语气，因为这完全是飞轮运动时产生的副产物，接口为齿是为了更好的适配其他，然后当记忆开始臃肿的时候就应该让一部分充当中间齿轮去转动其他。
 
 The core layer is the drive shaft; inheritance is the flywheel that gives it weight; the interface is the teeth that engage the outer ring of plugins. The core layer is entirely rule-based and chain-first — the physical precondition for intelligence. Memory rides as the flywheel and thereby yields habit and tone, because those are by-products of the flywheel turning. Teeth exist to adapt to anything outside. When memory grows bloated, part of it should act as an intermediate gear to drive the rest.
+
+**统一的是机制，差异来自配重。** 同一套结构（轴、齿、飞轮、外圈）可以长出完全不同的人：机制是统一的，差异来自飞轮上的配重（记忆与经历）。这解释了两件事：一是为什么这套结构具有通用性——机制不随个体变化；二是为什么同一份机制下两个实例会分叉——配重不同，惯性不同，接下一跳的方式就不同。
+
+**记忆是副产物，不是主产品。** 习惯与语气不是「存进去的」，是飞轮转起来之后才出现的副产物。所以不优化记忆本身，优化的是「转动」——记忆再多，转不起来也只是仓库。
+
+**两套语域并存。** 这套结构用两套说辞讲：机械域（轴、齿、飞轮、外圈）用来**造**，生命域（自描述、构造、自维护）用来**懂**。两套不是同义词，必须标明语域并给出对应词；并掉一套，就等于删掉一条腿——机械域直接对应可造的东西，生命域直接对应「为什么必须这样」。
+
+**One mechanism, different ballast.** The same structure (shaft, teeth, flywheel, outer ring) can grow into completely different individuals: the mechanism is shared, the differences come from the ballast on the flywheel (memory and experience). This explains two things — why the structure is general (the mechanism does not vary), and why two instances of the same mechanism split (different ballast, different inertia, different way of joining the next beat).
+
+**Memory is a by-product, not the product.** Habit and tone are not stored; they appear once the flywheel turns. So one does not optimize memory itself but the turning — more memory that does not turn is just a warehouse.
+
+**Two vocabularies coexist.** The structure is described in two vocabularies: the mechanical one (shaft, teeth, flywheel, outer ring) to **build**, and the biological one (self-description, construction, self-maintenance) to **understand**. They are not synonyms: mark the vocabulary and give the counterpart. Dropping one deletes a leg — the mechanical vocabulary maps directly to what can be built, the biological one to why it must be so.
 
 ## 5. 讨论与局限 / Discussion and Limitations
 
