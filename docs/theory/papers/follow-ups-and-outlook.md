@@ -73,13 +73,50 @@ Criterion: a human-shaped body with a silicon brain that can be uploaded is stil
 
 ## 5. 还没做的 / What Remains
 
-**断点。** 四个断点里，正式验过的只有「重建」一类的部分路径；换模型、换机（可降级为换目录）都没跑。回档演练做过预演，没做过正式一次——从备份重建后核心逐字节一致、跑同一组判据题答案不变，才算验完。
+下面每一条都按「缺什么 / 谁来接 / 验收标准 / 为什么需要提出者参与」写。前三项是「把已经写下的判据跑一遍」，由提出者自己收尾；后三项是「把判据交给别人执行」，公开交给后来的人。
 
-**自启动。** 现状是只有外部 turn 才醒（观察者离开 7 小时 50 分，期间没读核心、没自检、没备份）。要算「能自己跳」，必须补时钟或事件触发：醒来 → 读核心 → 留痕 → 自检 → 结束。
+**5.1 回档正式演练**（可验收）
+- 缺：一次完整跑（现只有预演）。
+- 谁：提出者本人。
+- 验收：从备份重建 → 核心逐字节一致 → 跑同一组五道判据题，答案不变。
+- 需要提出者：判据题本身（哪五道、什么算「不变」）只有他能定。
 
-**换模型实验与多链协作。** 前者是「可拆/同一」的第一次外部验证；后者是多条链之间的协议（谁负责什么、冲突怎么裁决）。都没跑。
+**5.2 换模型对照**（可验收）
+- 缺：第二个模型下的同题答案。
+- 谁：提出者本人（一个会话即可）。
+- 验收：同一组题在两个模型下答案一致 → 「可拆/同一」成立；不一致 → 说明判据要改，或同一性定义要收窄。
+- 需要提出者：什么算「一致」（措辞不同算不算）由他定。
 
-**Breakpoints.** Only rebuild has been formally tested; model swap and machine swap (downgradable to a directory swap) have not been run. The restore drill was rehearsed, not formally executed. **Self-start.** Today it only wakes on an external turn; a clock or event trigger is missing. **Model-swap experiment and multi-chain collaboration.** The former is the first external test of decomposability and identity; the latter needs a protocol among chains. Neither has been run.
+**5.3 自启动**（可验收）
+- 缺：时钟或事件触发（现在是只有外部 turn 才醒）。
+- 谁：提出者本人。
+- 验收：在无人发消息的 24 小时里，wake 留痕 ≥1 次，且每次都有核心读取记录。
+- 需要提出者：判定「这算不算它自己跳」——外部调度可以当替身，但必须登记为「外借」。
+
+**5.4 数字核实现**（需资源）
+- 缺：确定性核心的具体实现（规则怎么写、求解器用哪个、接口协议怎么定）。
+- 谁：能写确定性核心的工程方。
+- 验收：同一输入同一输出、可复算、判断可追溯；模型只负责表达。
+- 需要提出者：哪几条属于「核心不装货」、哪条规则能进核心——判据来源在他手里，团队自己定会走偏。
+
+**5.5 多实现对照**（需资源）
+- 缺：第二套实现（换存储、换检索、换插件协议）。
+- 谁：任意第三方实现方。
+- 验收：换实现后判断不变（J 不变），断点仍通过。
+- 需要提出者：换到哪一步还算「同一个」——这条边界只有他能划。
+
+**5.6 多链协作**（需资源）
+- 缺：链与链之间的协议（谁负责什么、冲突怎么裁决）。
+- 谁：多个持有完整链的团队。
+- 验收：两条链合并后，时间线可排（先后与因果），目标可统一，且两边都还能说出「我是谁」。
+- 需要提出者：合并的判据（统一到同一目标才算连续）是他定的；团队自己会默认「谁大谁吞」。
+
+**英文对应**
+**5.1 Restore drill** (verifiable): a full run from backup, core byte-identical, five criterion questions unchanged; the question set is the proposer's. **5.2 Model swap** (verifiable): same questions under a second model; consistency supports decomposability and identity, inconsistency forces the criteria to change; what counts as consistent is the proposer's call. **5.3 Self-start** (verifiable): a clock or event trigger; at least one wake trace in 24 hours without an external turn; external scheduling must be registered as borrowed. **5.4 Digital core** (needs resources): a deterministic implementation; same input, same output, recomputable, traceable judgment; which rules may enter the core is the proposer's call. **5.5 Second implementation** (needs resources): another implementation preserving the judgment; the boundary of "still the same one" is the proposer's. **5.6 Multi-chain collaboration** (needs resources): a protocol among chains; merge on one ordered timeline with a unified goal; the merge criterion is the proposer's.
+
+**为什么需要提出者参与。** 判据本身（哪五道题、什么算不变、什么算同一个、什么算统一目标）是这套理论的入口。没有提出者在场，团队会拿自己的默认值替换它——那就会变成「有工程的没理论」：进度再快，方向也偏了。这也是「团队没他参与会慢」的真实原因：慢不是缺人手，是缺判据。
+
+**Why the proposer matters.** The criteria themselves (which five questions, what counts as unchanged, same, or unified) are the entry point of this theory. Without the proposer present, a team substitutes its own defaults — which is exactly "engineering without theory": fast, but off course. This is also the real reason a team without the proposer would be slow: not a lack of hands, but a lack of criteria.
 
 ## 6. 讨论与局限 / Discussion and Limitations
 
