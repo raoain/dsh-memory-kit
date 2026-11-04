@@ -18,7 +18,7 @@
 | ② 最简单做 | [docs/QUICKSTART.md](docs/QUICKSTART.md) —— 五分钟四步 | 想先跑起来 |
 | ③ 表层解释 | [SKELETON.md](SKELETON.md) —— 五段分工、模块化、迁移 | 想知道骨架怎么搭 |
 | ④ 深入 | [docs/theory/](docs/theory/) —— 原话母本 → F1–F6 → 因果链 → 畅想 | 想知道为什么这样搭、想反驳 |
-| ⑤ 做法（第二篇） | [docs/theory/structure-and-gears.md](docs/theory/structure-and-gears.md) —— 结构层与齿轮（阅读顺序：思维怎么推出 → 做法 → 后续） | 想知道怎么搭 |
+| ⑤ 做法（第二篇） | [docs/theory/structure-and-gears.md](docs/theory/structure-and-gears.md) · [DOI 10.5281/zenodo.23962218](https://doi.org/10.5281/zenodo.23962218) —— 结构与思维（论文格式） | 想知道怎么搭 |
 | ⑥ 学术记录 | [DOI 10.5281/zenodo.23961529](https://doi.org/10.5281/zenodo.23961529) —— 论文 v2（论文格式）+ 理论五篇附件；概念 DOI 永远指向最新版 | 要引用、要时间戳、或看正式版 |
 
 只想反驳的，直接进 [ASK-TO-FALSIFY](docs/theory/ASK-TO-FALSIFY.md)；想看畅想的，进 [vision](docs/theory/vision.md)。
