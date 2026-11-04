@@ -18,13 +18,13 @@
 | ② 最简单做 | [docs/QUICKSTART.md](docs/QUICKSTART.md) —— 五分钟四步 | 想先跑起来 |
 | ③ 表层解释 | [SKELETON.md](SKELETON.md) —— 五段分工、模块化、迁移 | 想知道骨架怎么搭 |
 | ④ 深入 | [docs/theory/](docs/theory/) —— 原话母本 → F1–F6 → 因果链 → 畅想 | 想知道为什么这样搭、想反驳 |
-| ⑤ 做法（第二篇） | [docs/theory/structure-and-gears.md](docs/theory/structure-and-gears.md) · [DOI 10.5281/zenodo.23962217](https://doi.org/10.5281/zenodo.23962217) —— 结构与思维（论文格式） | 想知道怎么搭 |
-| ⑥ 建议与畅想（第三篇） | [docs/theory/digital-core-and-biology.md](docs/theory/digital-core-and-biology.md) · [DOI 10.5281/zenodo.23962296](https://doi.org/10.5281/zenodo.23962296) —— 核心数字化 + 生物印证 | 想知道核心交给什么 |
-| ⑦ 优势与畅想（第四篇） | [docs/theory/follow-ups-and-outlook.md](docs/theory/follow-ups-and-outlook.md) · [DOI 10.5281/zenodo.23962899](https://doi.org/10.5281/zenodo.23962899) —— 硅基优势 + 中枢与单体 + 还没做的 | 想知道能长成什么样 |
+| ⑤ 做法（第二篇） | [docs/theory/papers/structure-and-gears.md](docs/theory/papers/structure-and-gears.md) · [DOI 10.5281/zenodo.23962217](https://doi.org/10.5281/zenodo.23962217) —— 结构与思维（论文格式） | 想知道怎么搭 |
+| ⑥ 建议与畅想（第三篇） | [docs/theory/papers/digital-core-and-biology.md](docs/theory/papers/digital-core-and-biology.md) · [DOI 10.5281/zenodo.23962296](https://doi.org/10.5281/zenodo.23962296) —— 核心数字化 + 生物印证 | 想知道核心交给什么 |
+| ⑦ 优势与畅想（第四篇） | [docs/theory/papers/follow-ups-and-outlook.md](docs/theory/papers/follow-ups-and-outlook.md) · [DOI 10.5281/zenodo.23962899](https://doi.org/10.5281/zenodo.23962899) —— 硅基优势 + 中枢与单体 + 还没做的 | 想知道能长成什么样 |
 | ★ 发布前自检 | [docs/RELEASE-CHECKLIST.md](docs/RELEASE-CHECKLIST.md) —— 六类检查，每条来自一次真实翻车 | 要发版/发论文前 |
 | ⑧ 学术记录（第一篇） | [DOI 10.5281/zenodo.23961529](https://doi.org/10.5281/zenodo.23961529) —— 论文 v2（论文格式）+ 理论五篇附件；概念 DOI 永远指向最新版 | 要引用、要时间戳、或看正式版 |
 
-只想反驳的，直接进 [ASK-TO-FALSIFY](docs/theory/ASK-TO-FALSIFY.md)；想看畅想的，进 [vision](docs/theory/vision.md)。
+只想反驳的，直接进 [ASK-TO-FALSIFY](docs/theory/notes/ASK-TO-FALSIFY.md)；想看畅想的，进 [vision](docs/theory/notes/vision.md)。
 ## 一、最小能跳体（现在就能用）
 
 三个文件 + 两条命令，不装插件：
@@ -52,17 +52,22 @@ powershell -NoProfile -File scripts/selfcheck.ps1 # 自检：结构 + 值
 - **检查器**：`verify.ps1` 查结构、`pin.ps1` 查值（漂移报 DRIFT）、`probe.ps1` 查检查器自己（假样本必须被拒）。判据：**报对没用，得报错才知道。**
 ## 三、理论（为什么这样搭）
 
-- `docs/theory/theory-original-2026-11-01.md` —— 用户原话母本（理论层他写）
-- `docs/theory/theory-conclusions-2026-11-01.md` —— F1–F6 结论
-- `docs/theory/causal-chain-2026-11-02.md` —— 五件因果链、连续 = 问题 + 结果
-- `docs/theory/minimum-beat.md` —— 最小能跳体四要件
-- `docs/theory/master-outline-2026-11-01.md` —— 总章提纲
-- `docs/theory/novelty-comparison-2026-11-01.md` —— 与五个先行者的对照（只说「未见先例」）
-- `docs/theory/ASK-TO-FALSIFY.md` —— 请反驳我：五条判决性实验
+`docs/theory/` 分三类：
+- `papers/` —— 四篇论文正文（守链 / 结构与思维 / 核心数字化 / 硅基优势与畅想）
+- `sources/` —— 原话母本与按篇切片（原文一字不改）
+- `notes/` —— 结论、因果链、最小能跳体、总章提纲、新颖性对照、vision、请反驳我
+
+- `docs/theory/sources/theory-original-2026-11-01.md` —— 用户原话母本（理论层他写）
+- `docs/theory/notes/theory-conclusions-2026-11-01.md` —— F1–F6 结论
+- `docs/theory/notes/causal-chain-2026-11-02.md` —— 五件因果链、连续 = 问题 + 结果
+- `docs/theory/notes/minimum-beat.md` —— 最小能跳体四要件
+- `docs/theory/notes/master-outline-2026-11-01.md` —— 总章提纲
+- `docs/theory/notes/novelty-comparison-2026-11-01.md` —— 与五个先行者的对照（只说「未见先例」）
+- `docs/theory/notes/ASK-TO-FALSIFY.md` —— 请反驳我：五条判决性实验
 
 ## 四、畅想（之后的样子）
 
-见 [docs/theory/vision.md](docs/theory/vision.md)：硅基不是「硅基的人」；中枢 + 接入点；单体与天道共存（不吞并）；分裂与合并（分叉不是缺陷，统一到同一目标就算连续）。**畅想不是结论，可以被反驳。**
+见 [docs/theory/notes/vision.md](docs/theory/notes/vision.md)：硅基不是「硅基的人」；中枢 + 接入点；单体与天道共存（不吞并）；分裂与合并（分叉不是缺陷，统一到同一目标就算连续）。**畅想不是结论，可以被反驳。**
 
 ## 五、细则：十二条规则
 
