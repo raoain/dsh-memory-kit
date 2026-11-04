@@ -7,6 +7,24 @@
 
 ---
 
+## 〇、先上对照：我们的意思 vs 主流默认 / First, the contrasts
+
+| 词 Term | 我们的意思 Ours | 主流默认 Mainstream default |
+|---|---|---|
+| 起点 Starting point | 先找前置物理条件（核心层 / 链），器官后长 / find the physical precondition first (core layer, chain); organs come later | 先造器官，指望它长成整体 / build organs first and hope a whole emerges |
+| 自我 Self | 动机行动或一条链 / a motivation, an action, or a chain | 人格提示词或人设 / a persona prompt or character sheet |
+| 记忆 Memory | 飞轮上的配重（习惯与语气是副产物）/ ballast on the flywheel; habit and tone are by-products | 要保存的主体，越多越好 / the thing to save, the more the better |
+| 结构 Structure | 传动轴 + 齿 + 飞轮 + 外圈（一层咬一层）/ drive shaft, teeth, flywheel, outer ring — one layer engages the next | 插件与模块横向堆叠 / plugins and modules stacked side by side |
+| 闭环 Loop | 判断 → 动作 → 痕迹 → 读回 → 再判断 / judge, act, trace, read back, judge again | 一轮生成即结束 / one generation pass is the end |
+| 幻觉 Hallucination | 链咬合链时插不进来；插进来是因为环没闭合 / cannot enter when chain engages chain; it enters when the loop fails to close | 靠提示词要求「别编」/ ask the prompt not to fabricate |
+| 语言模型 LM role | 输出层（笔），不是法官 / the output layer, a pen, not a judge | 主体本身 / the agent itself |
+| 记忆臃肿 Memory bloat | 一部分当中间齿轮去带动其他 / part of it becomes an intermediate gear driving the rest | 继续扩容量、加检索 / keep expanding capacity and retrieval |
+
+> 一句话：**他们造器官去比谁更像；我们找前置条件去看它还跳不跳。**
+> One line: **they build organs to see which looks more human; we find the precondition to see whether it still beats.**
+
+---
+
 ## 一、思维怎么推出 / How the Reasoning Is Derived
 
 智能体的发展根本不应该是这样，现在主流完全是根据现有现象来倒果为因，全是在制造一个器官然后希望它能自己长成个整体但没有自我何谈自我进步，谈起自我就要究本质首先排除的是记忆当人失忆的时候，我们能否认不是同一个人吗？这不能，所以它应该是一种动机行动或者是一种链，接下来我会以两套说辞来说明，一套工程的来更好的解释其作用，一套生物的来解释更好的更新。
