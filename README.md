@@ -21,6 +21,7 @@
 | ⑤ 做法（第二篇） | [docs/theory/structure-and-gears.md](docs/theory/structure-and-gears.md) · [DOI 10.5281/zenodo.23962217](https://doi.org/10.5281/zenodo.23962217) —— 结构与思维（论文格式） | 想知道怎么搭 |
 | ⑥ 建议与畅想（第三篇） | [docs/theory/digital-core-and-biology.md](docs/theory/digital-core-and-biology.md) · [DOI 10.5281/zenodo.23962296](https://doi.org/10.5281/zenodo.23962296) —— 核心数字化 + 生物印证 | 想知道核心交给什么 |
 | ⑦ 优势与畅想（第四篇） | [docs/theory/follow-ups-and-outlook.md](docs/theory/follow-ups-and-outlook.md) · [DOI 10.5281/zenodo.23962899](https://doi.org/10.5281/zenodo.23962899) —— 硅基优势 + 中枢与单体 + 还没做的 | 想知道能长成什么样 |
+| ★ 发布前自检 | [docs/RELEASE-CHECKLIST.md](docs/RELEASE-CHECKLIST.md) —— 六类检查，每条来自一次真实翻车 | 要发版/发论文前 |
 | ⑧ 学术记录（第一篇） | [DOI 10.5281/zenodo.23961529](https://doi.org/10.5281/zenodo.23961529) —— 论文 v2（论文格式）+ 理论五篇附件；概念 DOI 永远指向最新版 | 要引用、要时间戳、或看正式版 |
 
 只想反驳的，直接进 [ASK-TO-FALSIFY](docs/theory/ASK-TO-FALSIFY.md)；想看畅想的，进 [vision](docs/theory/vision.md)。
