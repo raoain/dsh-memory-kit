@@ -10,16 +10,16 @@
 - 具体机理与器官（情绪层、记忆层、接口细节）**没有写**——那是后面的事，也是开放的部分；
 - 如果你发现方向上的不同（因果接不上、必要条件不成立），请直接指出——这比补细节更有价值。
 
-## 从哪里开始
+## 从哪里开始（四层，按需要往下读）
 
-| 你是哪种读者 | 从这里进 |
-|---|---|
-| 想先跑起来 | [docs/QUICKSTART.md](docs/QUICKSTART.md) —— 五分钟四步，末尾五问自检 |
-| 想看骨架本身 | [SKELETON.md](SKELETON.md) —— 五段分工、下降判据、模块化、迁移步骤 |
-| 想知道为什么这样搭 | [docs/theory/](docs/theory/) —— 原话母本 → 结论 F1–F6 → 因果链 |
-| 想先反驳 | [docs/theory/ASK-TO-FALSIFY.md](docs/theory/ASK-TO-FALSIFY.md) —— 五条判决性实验 |
-| 想看畅想（硅基自己的形态） | [docs/theory/vision.md](docs/theory/vision.md) —— 中枢 + 单体 / 分裂合并 / 未写的机理 |
+| 层 | 读什么 | 什么时候读 |
+|---|---|---|
+| ① 入口 | 这一页 | 第一次来，先知道这是什么 |
+| ② 最简单做 | [docs/QUICKSTART.md](docs/QUICKSTART.md) —— 五分钟四步 | 想先跑起来 |
+| ③ 表层解释 | [SKELETON.md](SKELETON.md) —— 五段分工、模块化、迁移 | 想知道骨架怎么搭 |
+| ④ 深入 | [docs/theory/](docs/theory/) —— 原话母本 → F1–F6 → 因果链 → 畅想 | 想知道为什么这样搭、想反驳 |
 
+只想反驳的，直接进 [ASK-TO-FALSIFY](docs/theory/ASK-TO-FALSIFY.md)；想看畅想的，进 [vision](docs/theory/vision.md)。
 ## 一、最小能跳体（现在就能用）
 
 三个文件 + 两条命令，不装插件：
