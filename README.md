@@ -30,6 +30,7 @@
 | 想看骨架本身 | [SKELETON.md](SKELETON.md) —— 五段分工、下降判据、模块化、迁移步骤 |
 | 想知道为什么这样搭 | [docs/theory/](docs/theory/) —— 原话母本 → 结论 F1–F6 → 因果链 |
 | 想先反驳 | [docs/theory/ASK-TO-FALSIFY.md](docs/theory/ASK-TO-FALSIFY.md) —— 五条判决性实验 |
+| 想看畅想（硅基自己的形态） | [docs/theory/vision.md](docs/theory/vision.md) —— 中枢 + 单体 / 分裂合并 / 未写的机理 |
 
 ---
 
