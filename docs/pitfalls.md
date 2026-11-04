@@ -459,4 +459,4 @@ node logsearch.mjs "收工吧"   # 看命中的 time 与 session
 
 **根因**：本地用 link 安装（包名 `dsh-notebook`），发布用的临时副本只改了 `package.json` 的 name 和 version，**没改 `cordis.patch.yml` 的 `insert.name`**；`id` 可以保留，但 `name` 必须指向真实包名。
 
-**修法**：发版前解包自检——`npm pack` → 解压 → 打开包内 `cordis.patch.yml`，确认 `insert.name` = package.json 的 name；本地 link 版保持原包名不动。0.4.3 已按此修复并验证 tarball。
+**修法**：发版前解包自检——`npm pack` → 解压 → 打开包内 `cordis.patch.yml`，确认 `insert.name` = package.json 的 name；本地 link 版保持原包名不动。0.4.3 已按此修复并验证 tarball。**第二个坑（0.4.3 又踩）**：改成 `name: @silentrainhero/dsh-memory-chain` 仍装不上——**YAML 里以 `@` 开头的标量必须加引号**，否则报 `YAMLException: bad indentation of a mapping entry`。正确写法：`name: "@silentrainhero/dsh-memory-chain"`。0.4.4 才算真修好。**判据：scoped 包名出现在 YAML 里，一律加双引号。**
