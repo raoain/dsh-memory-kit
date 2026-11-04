@@ -3,7 +3,7 @@
 > 姊妹篇：第一篇《守链 / The Guarded Chain》（DOI: 10.5281/zenodo.23961530）讲「为什么」；这一篇只讲「怎么搭」——思维怎么推出、结构怎么接。
 > Companion paper: the first one (DOI: 10.5281/zenodo.23961530) argues *why*; this one covers only *how* — how the reasoning is derived, and how the structure is assembled.
 
-> 底稿：`theory-original-structure-2026-11-05.md`（从 `theory-original-2026-11-01.md` 切出的第 1/2/3 段：起因＋结构＋思维；原母本已随第一篇存入 Zenodo，一字未改）。本文只做分段、断句补标点、改错别字，不新增词、不改句式。
+> 底稿：`theory-original-paper2-2026-11-05.md`（从 `theory-original-2026-11-01.md` 切出的第 1/2/3 段：起因＋结构＋思维；原母本已随第一篇存入 Zenodo，一字未改）。本文只做分段、断句补标点、改错别字，不新增词、不改句式。
 
 ---
 
