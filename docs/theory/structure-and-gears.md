@@ -52,9 +52,25 @@ The core layer is the drive shaft; inheritance is the flywheel that gives it wei
 
 ## 5. 讨论与局限 / Discussion and Limitations
 
-本篇只给思维与结构，不给具体器官的实现（情绪层、记忆层、接口细节）——那些留待后续，也是开放的部分。结构中的「继承」「飞轮」「中间齿轮」都是功能位，不是指定实现；换一种实现，只要咬合关系不变，就仍然成立。
+**为什么把模型当笔。** 语言模型每一步内部都自洽：前一句接得上，后一句就成立；自洽里没有「报警」的位置，所以它不会自己停。这不是知识不够，是构造：它只能顺着写，不能主动跑一遍环。把判断留在链上、让它只负责表达，是唯一不需要它自觉的办法。
+
+**为什么结构要分功能位。** 「传动轴 / 飞轮 / 齿 / 外圈」是位置，不是零件。换一种实现（换存储、换检索、换插件协议），只要咬合关系不变、判断不变，结构就还成立——这对应第一篇的「可拆」（换实现 J 不变）。反过来，如果某个零件被写死成唯一实现，它就从功能位退化成脆弱点。
+
+**为什么记忆臃肿要变中间齿轮。** 记忆越多，越会想「全带上」；全带上的结果是把上下文挤满、把判断挤出去。让一部分记忆充当中间齿轮去带动其他（而不是全部直连核心），是让「多」变成「有用」的唯一方式。
+
+**局限。** 本篇只给思维与结构，不给具体器官的实现（情绪层、记忆层、接口细节）——那些留待后续，也是开放的部分。结构中的「继承」「飞轮」「中间齿轮」都是功能位，不是指定实现。本篇没有实验数据；断点验收见第一篇，结构的可拆性只做了一次「换实现不变」的论证，没有做多实现对照。
+
+**可推翻条件。** 若存在一种结构：不需要传动轴（核心层）、不需要齿（接口）、也不需要飞轮（惯性/记忆配重），仍然能稳定咬合外圈并保持判断一致——那本篇的结构主张被推翻。若语言模型可以自发跑完闭环而不需要外部环——那本篇「把它当笔」的前提被推翻。
 
 This paper states only the reasoning and the structure, not the concrete organs (emotion layer, memory layer, interface details); those remain open. "Inheritance", "flywheel" and "intermediate gear" are functional positions, not mandated implementations — another implementation that preserves the same engagement pattern still holds.
+
+Why the model is a pen: a language model is internally self-consistent at every step, so it has no place to raise an alarm and cannot stop itself; keeping judgment on the chain and letting the model only express is the one way that does not require its self-awareness.
+
+Why functional positions matter: shaft, flywheel, teeth and outer ring are positions, not parts. Another implementation that preserves the engagement pattern and the judgment still holds — this matches the "decomposable" condition of the first paper.
+
+Why bloated memory becomes an intermediate gear: carrying everything fills the context and crowds out judgment; letting part of memory drive the rest is how "more" becomes "useful".
+
+Limitations and falsifiability: no experimental data in this paper; breakpoints belong to the first paper. The structure claim is refuted if some structure maintains engagement and judgment without a shaft, teeth, or flywheel; the "model as a pen" premise is refuted if a language model can spontaneously run the loop without an external one.
 
 ## 6. 结论 / Conclusion
 
