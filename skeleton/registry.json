@@ -1,0 +1,20 @@
+{
+  "note": "registry: number -> cell. Numbers only grow, never reused; unknown id must error.",
+  "kind": { "1": "judge", "2": "probe", "3": "act", "4": "record" },
+  "cells": {
+    "1": { "id": "verify", "kind": 1, "path": "verify.ps1" },
+    "2": { "id": "pin", "kind": 1, "path": "pin.ps1" },
+    "3": { "id": "status", "kind": 2, "path": "status.ps1" },
+    "4": { "id": "watchdog", "kind": 3, "path": "watchdog.ps1" },
+    "5": { "id": "backup", "kind": 3, "path": "backup.ps1" },
+    "6": { "id": "log", "kind": 4, "path": "log.ps1" }
+  },
+  "subs": {
+    "1": [4, 6],
+    "2": [6],
+    "4": [1],
+    "5": [6],
+    "3": [6],
+    "6": []
+  }
+}

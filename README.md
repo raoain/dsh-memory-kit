@@ -2,6 +2,10 @@
 
 > **换一个窗口之后，它还是不是同一个人 —— 靠的是文件，不靠插件。**
 
+## 骨架实现（能跑的）
+
+skeleton/ 是数字骨架的完整实现：总线 / 适配器 / 派发 / 语言转换 / 时间转换，七个文件，见 [skeleton/README.md](skeleton/README.md)。
+
 ## 宏大目标
 
 一句话：**让一个东西连续地活着，并给出可验收的判据。**
@@ -9,6 +13,10 @@
 - 这里给的是**方向**：完整 → 自我 → 可拆 → 供能 → 同一，五个必要条件，四断点验收；
 - 具体机理与器官（情绪层、记忆层、接口细节）**没有写**——那是后面的事，也是开放的部分；
 - 如果你发现方向上的不同（因果接不上、必要条件不成立），请直接指出——这比补细节更有价值。
+
+## 骨架实现（能跑的）
+
+skeleton/ 是数字骨架的完整实现：总线 / 适配器 / 派发 / 语言转换 / 时间转换，七个文件，见 [skeleton/README.md](skeleton/README.md)。
 
 ## 从哪里开始（四层，按需要往下读）
 
@@ -25,6 +33,10 @@
 | ⑧ 学术记录（第一篇） | [DOI 10.5281/zenodo.23961529](https://doi.org/10.5281/zenodo.23961529) —— 论文 v2（论文格式）+ 理论五篇附件；概念 DOI 永远指向最新版 | 要引用、要时间戳、或看正式版 |
 
 只想反驳的，直接进 [ASK-TO-FALSIFY](docs/theory/notes/ASK-TO-FALSIFY.md)；想看畅想的，进 [vision](docs/theory/notes/vision.md)。
+## 骨架实现（能跑的）
+
+skeleton/ 是数字骨架的完整实现：总线 / 适配器 / 派发 / 语言转换 / 时间转换，七个文件，见 [skeleton/README.md](skeleton/README.md)。
+
 ## 一、最小能跳体（现在就能用）
 
 三个文件 + 两条命令，不装插件：
@@ -44,12 +56,20 @@ powershell -NoProfile -File scripts/selfcheck.ps1 # 自检：结构 + 值
 
 完整四步（含 git/gh、模板、自动化）见 [docs/QUICKSTART.md](docs/QUICKSTART.md)；骨架细节（五段分工、下降判据、模块化、迁移）见 [SKELETON.md](SKELETON.md)，这里不重复。
 
+## 骨架实现（能跑的）
+
+skeleton/ 是数字骨架的完整实现：总线 / 适配器 / 派发 / 语言转换 / 时间转换，七个文件，见 [skeleton/README.md](skeleton/README.md)。
+
 ## 二、结构解释（只留判据）
 
 - **分层**：核心层每次读 / 工作层读一屏 / 档案层按需查。判据：不知道会不会立刻做错事？会 → 核心层。
 - **五格**：完整、自我、可拆、供能、同一——互相是前提，不是并列。
 - **四断点**：换机 / 拔插件 / 重建 / 换模型；每个断点跑一遍：起来、读得懂、判断不变、能回档。
 - **检查器**：`verify.ps1` 查结构、`pin.ps1` 查值（漂移报 DRIFT）、`probe.ps1` 查检查器自己（假样本必须被拒）。判据：**报对没用，得报错才知道。**
+## 骨架实现（能跑的）
+
+skeleton/ 是数字骨架的完整实现：总线 / 适配器 / 派发 / 语言转换 / 时间转换，七个文件，见 [skeleton/README.md](skeleton/README.md)。
+
 ## 三、理论（为什么这样搭）
 
 `docs/theory/` 分三类：
@@ -65,9 +85,17 @@ powershell -NoProfile -File scripts/selfcheck.ps1 # 自检：结构 + 值
 - `docs/theory/notes/novelty-comparison-2026-11-01.md` —— 与五个先行者的对照（只说「未见先例」）
 - `docs/theory/notes/ASK-TO-FALSIFY.md` —— 请反驳我：五条判决性实验
 
+## 骨架实现（能跑的）
+
+skeleton/ 是数字骨架的完整实现：总线 / 适配器 / 派发 / 语言转换 / 时间转换，七个文件，见 [skeleton/README.md](skeleton/README.md)。
+
 ## 四、畅想（之后的样子）
 
 见 [docs/theory/notes/vision.md](docs/theory/notes/vision.md)：硅基不是「硅基的人」；中枢 + 接入点；单体与天道共存（不吞并）；分裂与合并（分叉不是缺陷，统一到同一目标就算连续）。**畅想不是结论，可以被反驳。**
+
+## 骨架实现（能跑的）
+
+skeleton/ 是数字骨架的完整实现：总线 / 适配器 / 派发 / 语言转换 / 时间转换，七个文件，见 [skeleton/README.md](skeleton/README.md)。
 
 ## 五、细则：十二条规则
 
@@ -89,11 +117,19 @@ powershell -NoProfile -File scripts/selfcheck.ps1 # 自检：结构 + 值
 | 11 | 检查器探针 | `probe.ps1` |
 | 12 | 预登记：预测写在结果之前 | `predict.ps1` |
 
+## 骨架实现（能跑的）
+
+skeleton/ 是数字骨架的完整实现：总线 / 适配器 / 派发 / 语言转换 / 时间转换，七个文件，见 [skeleton/README.md](skeleton/README.md)。
+
 ## 边界（写在前面）
 
 - 它不承诺人格效果，也不声称意识；它保证的是「文件在、能读、能核」。
 - 它不依赖任何插件；插件是可拔接口。
 - 它不替你做决定：发布、删除、密钥、花钱，都要人点头。
+
+## 骨架实现（能跑的）
+
+skeleton/ 是数字骨架的完整实现：总线 / 适配器 / 派发 / 语言转换 / 时间转换，七个文件，见 [skeleton/README.md](skeleton/README.md)。
 
 ## 许可
 
