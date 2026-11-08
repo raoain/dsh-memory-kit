@@ -12,29 +12,34 @@ $ErrorActionPreference = 'Continue'
 . (Join-Path $PSScriptRoot '_root.ps1')
 $Log = Join-Path $Root 'track\watchdog.jsonl'
 
-# ── 自愈：心跳停了就把卡住的整链杀掉，再起一套（2026-11-08）
-# 为什么在这里：loop.mjs 用 spawnSync 跑子进程，子进程卡住 → loop 卡住 → 锁不释放 →
-# 没人接手 → 心跳停（因为写心跳的那个就是卡住的那个）。系统会把自己呛死。
-# 看门狗是链外唯一还活着的东西，所以它必须能动手，不能只报红。
+# ── 维护一条：不杀、不重起；先等它自己脱身，等不到也只动那一条（2026-11-08 第二版）
+# 第一版是错的：杀 powershell（loop 是 node，杀不到）、杀全部（不是只杀卡住的）、
+# 杀完重起（那一刀本身就是「断」，而断正是要避免的）。
+# 而且根本不必杀：loop.mjs 每轮有 30-120 秒 deadline，卡住的子进程会被它自己杀掉继续。
+# 心跳停 120 秒是「卡」，不是「死」。三档：
+#   < 120 秒      不动（loop 自己的 deadline 覆盖了）
+#   120..600 秒   只记录，不动手（还在 2 倍 deadline 以内）
+#   > 600 秒      才动手，而且只动落后那一条（按 node 进程、按 loop 名）
 $hbAge = 9999
 $hbOut = & node (Join-Path $Root 'core\timers-alive.mjs') 2>$null
 try { if ($hbOut) { $hbAge = [int]("$hbOut".Trim()) } } catch { }
 if ($hbAge -gt 120) {
-    $killed = 0
-    Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" | Where-Object { $_.CommandLine -like "*coo-day1*" -and $_.CommandLine -like "*loop.mjs*" -and $_.ProcessId -ne $PID } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; $killed++ }
-    $lockDir = Join-Path $Root 'track\.locks'
-    if (Test-Path $lockDir) {
-        Get-ChildItem $lockDir -Filter *.lock -ErrorAction SilentlyContinue | ForEach-Object {
-            $pidInLock = 0
-            try { $pidInLock = [int]((Get-Content $_.FullName -Raw).Trim()) } catch { }
-            $aliveLock = $false
-            if ($pidInLock -gt 0) { if (Get-Process -Id $pidInLock -ErrorAction SilentlyContinue) { $aliveLock = $true } }
-            if (-not $aliveLock) { Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue }
+    $act = if ($hbAge -gt 600) { "acted" } else { "waiting" }
+    $note = [ordered]@{ at = (Get-Date -Format "yyyy-MM-dd HH:mm:ss"); heartAge = $hbAge; action = $act; killed = 0 }
+    if ($hbAge -gt 600) {
+        # 只动真正落后的那一条：找名字是 reflex 的那条 loop 的 node 进程。
+        # 其它 loop（watchdog/drift/sweep）没卡，杀了就是主动制造断。
+        $stuck = Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object { $_.CommandLine -like '*loop.mjs*' -and $_.CommandLine -like '*--name reflex*' }
+        foreach ($sp in $stuck) {
+            Stop-Process -Id $sp.ProcessId -Force -ErrorAction SilentlyContinue
+            $note.killed = $note.killed + 1
+            $lk = Join-Path $Root 'track\.locks\reflex.lock'
+            if (Test-Path $lk) { Remove-Item $lk -Force -ErrorAction SilentlyContinue }
         }
+        & wscript.exe (Join-Path $Root 'start-timers.vbs') 2>$null
     }
-    & wscript.exe (Join-Path $Root 'start-timers.vbs') 2>$null
-    $heal = [ordered]@{ at = (Get-Date -Format "yyyy-MM-dd HH:mm:ss"); heartAge = $hbAge; killed = $killed }
-    Add-Content -LiteralPath (Join-Path $Root "track\watchdog.heal.jsonl") -Value (($heal | ConvertTo-Json -Compress)) -Encoding UTF8
+    # 断没断、断了多久，都写下来——断过就是断过，不许假装没断
+    Add-Content -LiteralPath (Join-Path $Root "track\watchdog.heal.jsonl") -Value (($note | ConvertTo-Json -Compress)) -Encoding UTF8
 }
 $Red = Join-Path $Root 'track\watchdog.red'
 
