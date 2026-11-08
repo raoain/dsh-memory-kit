@@ -1,14 +1,14 @@
-﻿﻿﻿# : The term '﻿﻿﻿#' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the
- spelling of the name, or if a path was included, verify that the path is correct and try again.
-At F:\Tools\coo-day1\verify.ps1:1 char:1
-+ ﻿﻿﻿# verify.ps1 — 一条命令核对「可核对的事实」，输出 OK / WARN / FAIL
+﻿???# : 无法将“???#”项识别为 cmdlet、函数、脚本文件或可运行程序的名称。请检查名称的拼写，如果包括路径，请确保路径正确
+，然后再试一次。
+所在位置 F:\Tools\coo-day1\verify.ps1:1 字符: 1
++ ???# verify.ps1 — 一条命令核对「可核对的事实」，输出 OK / WARN / FAIL
 + ~~~~
-    + CategoryInfo          : ObjectNotFound: (﻿﻿﻿#:String) [], CommandNotFoundException
+    + CategoryInfo          : ObjectNotFound: (???#:String) [], CommandNotFoundException
     + FullyQualifiedErrorId : CommandNotFoundException
  
-param : The term 'param' is not recognized as the name of a cmdlet, function, script file, or operable program. Check t
-he spelling of the name, or if a path was included, verify that the path is correct and try again.
-At F:\Tools\coo-day1\verify.ps1:10 char:1
+param : 无法将“param”项识别为 cmdlet、函数、脚本文件或可运行程序的名称。请检查名称的拼写，如果包括路径，请确保路径正
+确，然后再试一次。
+所在位置 F:\Tools\coo-day1\verify.ps1:10 字符: 1
 + param(
 + ~~~~~
     + CategoryInfo          : ObjectNotFound: (param:String) [], CommandNotFoundException
@@ -38,7 +38,7 @@ At F:\Tools\coo-day1\verify.ps1:10 char:1
  12 OK    脚本 lint          无问题
  13 OK    未钉脚本             全部已钉
  14 OK    档案时间戳            52 条，格式完整、顺序递增（12 处同分钟，合法，仅提示）
- 15 OK    工作层时间戳           369 条，格式完整、顺序递增（35 处同分钟，合法，仅提示）
+ 15 OK    工作层时间戳           370 条，格式完整、顺序递增（35 处同分钟，合法，仅提示）
  16 OK    工作层行内合并          没有畸形行
  17 OK    工作层格式            没有畸形行
  18 OK    档案格式             没有畸形行
@@ -53,12 +53,12 @@ At F:\Tools\coo-day1\verify.ps1:10 char:1
  27 OK    预登记              2 条预测，无逾期未判
  28 OK    待消化              3 条，无积压
  29 OK    接缝表              10 条接缝
- 30 OK    改动留痕比            未留痕改动 3 个（上次记录 13:56）
+ 30 OK    改动留痕比            未留痕改动 3 个（上次记录 13:59）
  31 OK    术语黑名单            给人读的稿无术语（入口稿全查，论证稿只查内部工程词）
  32 OK    载荷表              3 条；最近一次 2026-11-06（工具 0 次 / 改文件 2 个 / token 0.415636）
- 33 OK    读回记录             24 条，最近的依据都能打开（最近一条 58 小时前）
+ 33 OK    读回记录             24 条，最近的依据都能打开（最近一条 59 小时前）
  34 OK    发布依据链            最近 3 条发布都有发前依据记录
- 35 OK    取真通道             时钟 OK(2026-11-08 13:59:52) / 文件 OK(34 行)
+ 35 OK    取真通道             时钟 OK(2026-11-08 14:00:16) / 文件 OK(34 行)
  36 OK    环位标注             每页都写了环位与接口
  37 OK    轴不装货             核心层只有发动机（总纲/我是谁/纪律/元规则）
  38 OK    术语引用             14 个说法都被别处引用过
@@ -71,12 +71,12 @@ At F:\Tools\coo-day1\verify.ps1:10 char:1
  45 OK    框架冻结             AGENTS 20 条（上限 20）；框架冻结中
  46 OK    核心纯 ASCII        4 个核心数据文件全 ASCII
  47 OK    器官清单             15 个登记器官全部在位
- 48 OK    心跳活着             1 秒前还有一跳
+ 48 OK    心跳活着             0 秒前还有一跳
  49 OK    唯一根定义            定义 0 处
  50 OK    定时器三件            启动器与心跳探测都在
- 51 OK    探针报到             8/8 通过，0.0 小时前报到
+ 51 OK    探针报到             8/8 通过，0.1 小时前报到
  52 OK    协议纯 ASCII        json / bus / emit 参数全 ASCII
  53 OK    检查器自检            52 项（预期 52）
 
-53 项：OK 53 / SOFT 0（容差内） / WARN 0 / FAIL 0   （5,300 ms）
+53 项：OK 53 / SOFT 0（容差内） / WARN 0 / FAIL 0   （5,652 ms）
 SIG {"state":0,"counts":[53,53,0,0]}
