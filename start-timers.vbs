@@ -1,46 +1,31 @@
-' start-timers.vbs -- launch the timer loops fully detached, guarded.
+' start-timers.vbs -- start the repeating organ loops, each one guaranteed single.
 '
 ' Why a vbs: measured on this box (2026-11-08), processes started with Start-Process or
 ' Invoke-CimMethod do not survive the calling session -- both died within seconds. wscript
 ' is a separate host, so what it starts does not belong to the calling shell.
 '
-' 2026-11-08 second fix: the duplicate-driver guard used to live only in coo-watchdog.cmd,
-' so calling this vbs directly (which is what a person or a script does when restoring a
-' stopped heartbeat) bypassed the guard and started a second set -- 7 processes instead of
-' 4, three times in one afternoon.
-' The guard now lives HERE, at the place that actually starts processes. The question it asks
-' is answered by the bus, not by a marker file and not by matching its own command line:
-'   heartbeat age < 90 s  -> a set is already running, start nothing.
+' Why core/loop.mjs: the single-instance guard used to live in the caller (coo-watchdog.cmd,
+' then this vbs). Both could be bypassed: call the vbs directly, pass /force, or hand-roll
+' `powershell -Command while(...)`. The user's rule (2026-11-08): this must be stable and
+' singular BY ITSELF, not because someone remembers the right entry point.
+' Every loop now asks "am I already running?" via a lock file holding its own PID, inside the
+' loop, so it holds no matter who starts it or how many times.
 '
-' usage: wscript.exe start-timers.vbs      (safe to call any number of times)
-'        wscript.exe start-timers.vbs /force   (start anyway, e.g. after killing a hung set)
+' Why no nested quotes: the sweep step used to be three `& node ...` calls glued together
+' four quote levels deep, and it silently failed to start while the other loops came up.
+' Multi-step rounds now live in one script (core/sweep.mjs).
+'
+' usage: wscript.exe start-timers.vbs
+' safe to call any number of times; starting an already-running loop adds nothing.
 
 Set sh = CreateObject("WScript.Shell")
-Set fso = CreateObject("Scripting.FileSystemObject")
 base = "F:\Tools\coo-day1"
+n = "node"
 
-force = False
-For Each a In WScript.Arguments
-    If LCase(a) = "/force" Then force = True
-Next
+' one-shot migration: stop any pre-lock loops still running (they would not check the lock)
+sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command ""Get-CimInstance Win32_Process -Filter """"Name='powershell.exe'"""" | Where-Object { $_.CommandLine -like '*coo-day1*while*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }""", 0, False
 
-' --- guard: ask the bus how long ago the last heartbeat landed -----------------------
-Dim age
-age = 9999
-On Error Resume Next
-Set exec = sh.Exec("node """ & base & "\core\timers-alive.mjs""")
-out = exec.StdOut.ReadAll()
-On Error GoTo 0
-If Len(Trim(out)) > 0 Then
-    If IsNumeric(Trim(out)) Then age = CLng(Trim(out))
-End If
-
-If (Not force) And (age < 90) Then
-    ' a set is already beating; starting another would only halve the interval
-    WScript.Quit 0
-End If
-
-sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command ""while ($true) { & '" & base & "\watchdog.ps1' | Out-Null; Start-Sleep -Seconds 300 }""", 0, False
-sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command ""while ($true) { & node '" & base & "\core\reflex.mjs' | Out-Null; Start-Sleep -Seconds 3 }""", 0, False
-sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command ""while ($true) { & node '" & base & "\core\drift.mjs' | Out-Null; Start-Sleep -Seconds 60 }""", 0, False
-sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command ""while ($true) { & node '" & base & "\core\bus-rotate.mjs' | Out-Null; & node '" & base & "\core\pulse.mjs' | Out-Null; & node '" & base & "\core\self.mjs' | Out-Null; Start-Sleep -Seconds 1800 }""", 0, False
+sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command ""& " & n & " '" & base & "\core\loop.mjs' --name watchdog --every 300 -- powershell -NoProfile -ExecutionPolicy Bypass -File '" & base & "\watchdog.ps1'""", 0, False
+sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command ""& " & n & " '" & base & "\core\loop.mjs' --name reflex --every 3 -- " & n & " '" & base & "\core\reflex.mjs'""", 0, False
+sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command ""& " & n & " '" & base & "\core\loop.mjs' --name drift --every 60 -- " & n & " '" & base & "\core\drift.mjs'""", 0, False
+sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command ""& " & n & " '" & base & "\core\loop.mjs' --name sweep --every 1800 -- " & n & " '" & base & "\core\sweep.mjs'""", 0, False
