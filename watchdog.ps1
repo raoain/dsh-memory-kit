@@ -12,36 +12,23 @@ $ErrorActionPreference = 'Continue'
 . (Join-Path $PSScriptRoot '_root.ps1')
 $Log = Join-Path $Root 'track\watchdog.jsonl'
 
-# ── 维护一条：不杀、不重起；先等它自己脱身，等不到也只动那一条（2026-11-08 第二版）
-# 第一版是错的：杀 powershell（loop 是 node，杀不到）、杀全部（不是只杀卡住的）、
-# 杀完重起（那一刀本身就是「断」，而断正是要避免的）。
-# 而且根本不必杀：loop.mjs 每轮有 30-120 秒 deadline，卡住的子进程会被它自己杀掉继续。
-# 心跳停 120 秒是「卡」，不是「死」。三档：
-#   < 120 秒      不动（loop 自己的 deadline 覆盖了）
-#   120..600 秒   只记录，不动手（还在 2 倍 deadline 以内）
-#   > 600 秒      才动手，而且只动落后那一条（按 node 进程、按 loop 名）
+# ── 只报告，不动手：判生死不是手的活（2026-11-08 第三版，用户纠正）
+#
+# 「心跳断了就杀掉重起」——第一版是杀错对象、杀全部、杀完还制造一次断；第二版只杀落后
+# 那一条。两版都错在同一个地方：**手在决定生死**。
+# 分工是：用户 = 母亲（定判据、保留改判据的权力）；环 = 婴儿（照判据判）；
+#         手 = 只做，不拿主意。
+# 所以这里只做三件：读出心跳多久没跳、写一行记录、心跳超时就写红文件。
+# 要不要重启、谁重启、什么时候重启——由人或由环自己决定，不由这个脚本决定。
 $hbAge = 9999
 $hbOut = & node (Join-Path $Root 'core\timers-alive.mjs') 2>$null
 try { if ($hbOut) { $hbAge = [int]("$hbOut".Trim()) } } catch { }
 if ($hbAge -gt 120) {
-    $act = if ($hbAge -gt 600) { "acted" } else { "waiting" }
-    $note = [ordered]@{ at = (Get-Date -Format "yyyy-MM-dd HH:mm:ss"); heartAge = $hbAge; action = $act; killed = 0 }
-    if ($hbAge -gt 600) {
-        # 只动真正落后的那一条：找名字是 reflex 的那条 loop 的 node 进程。
-        # 其它 loop（watchdog/drift/sweep）没卡，杀了就是主动制造断。
-        $stuck = Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object { $_.CommandLine -like '*loop.mjs*' -and $_.CommandLine -like '*--name reflex*' }
-        foreach ($sp in $stuck) {
-            Stop-Process -Id $sp.ProcessId -Force -ErrorAction SilentlyContinue
-            $note.killed = $note.killed + 1
-            $lk = Join-Path $Root 'track\.locks\reflex.lock'
-            if (Test-Path $lk) { Remove-Item $lk -Force -ErrorAction SilentlyContinue }
-        }
-        & wscript.exe (Join-Path $Root 'start-timers.vbs') 2>$null
-    }
-    # 断没断、断了多久，都写下来——断过就是断过，不许假装没断
+    $note = [ordered]@{ at = (Get-Date -Format "yyyy-MM-dd HH:mm:ss"); heartAge = $hbAge; action = "reported-only" }
     Add-Content -LiteralPath (Join-Path $Root "track\watchdog.heal.jsonl") -Value (($note | ConvertTo-Json -Compress)) -Encoding UTF8
-}
-$Red = Join-Path $Root 'track\watchdog.red'
+    $redP = Join-Path $Root 'track\watchdog.red'
+    Set-Content -LiteralPath $redP -Value ("heartbeat late {0}s at {1} -- 只报告，未处置" -f $hbAge, (Get-Date -Format "yyyy-MM-dd HH:mm:ss")) -Encoding UTF8
+}$Red = Join-Path $Root 'track\watchdog.red'
 
 $out = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'verify.ps1') 2>&1
 $code = $LASTEXITCODE
