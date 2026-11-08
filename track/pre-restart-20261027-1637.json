@@ -1,0 +1,16 @@
+﻿{
+    "takenAt":  "2026-10-27 16:37:17",
+    "dshPort":  1071,
+    "dshPid":  15572,
+    "bundles":  [
+                    "@deepseek-ai/dsh-base",
+                    "@deepseek-ai/dsh-web-app",
+                    "dsh-notebook"
+                ],
+    "dependencies":  {
+                         "dsh-notebook":  "file:F:/Tools/dsh-notebook"
+                     },
+    "nodeModules":  true,
+    "pluginVersion":  "0.1.0",
+    "note":  "重启后对照：bundles 应有 dsh-notebook；工具列表应出现 notebook_wake/work/pit/close"
+}

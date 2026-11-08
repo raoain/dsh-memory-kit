@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "note": "reflex rules: when a signal matches, spawn the target organ. Order = tie-break; rush decides priority.",
+  "rules": [
+    {
+      "id": 1,
+      "when": {
+        "src": 1,
+        "state": 2
+      },
+      "then": {
+        "spawn": 6
+      },
+      "rush": 2,
+      "why": "verify failed -> record it"
+    },
+    {
+      "id": 2,
+      "when": {
+        "src": 2,
+        "state": 1
+      },
+      "then": {
+        "spawn": 2
+      },
+      "rush": 1,
+      "why": "pin drift -> rerun pin -Init"
+    },
+    {
+      "id": 3,
+      "when": {
+        "src": 4,
+        "state": 2
+      },
+      "then": {
+        "spawn": 1
+      },
+      "rush": 2,
+      "why": "watchdog red -> rerun verify"
+    },
+    {
+      "id": 4,
+      "when": {
+        "state": 0
+      },
+      "then": {
+        "spawn": 0
+      },
+      "rush": 0,
+      "why": "pass -> do nothing (inhibition rule)"
+    },
+    {
+      "id": 5,
+      "when": {
+        "src": 8,
+        "state": 2
+      },
+      "then": {
+        "spawn": 6
+      },
+      "rush": 2,
+      "why": "self profile is not me -> record it"
+    }
+  ]
+}

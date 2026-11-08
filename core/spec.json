@@ -1,0 +1,149 @@
+{
+  "version": 5,
+  "time": "ts = epoch milliseconds (number); at = UTC ISO8601 with trailing Z (for humans)",
+  "state": {
+    "0": "pass",
+    "1": "warn",
+    "2": "fail",
+    "3": "unknown"
+  },
+  "kind": {
+    "1": "judge",
+    "2": "probe",
+    "3": "act",
+    "4": "record"
+  },
+  "exit": {
+    "0": "pass",
+    "1": "ok-with-warn",
+    "2": "fail",
+    "3": "cannot-judge"
+  },
+  "rush": {
+    "0": "cosmetic",
+    "1": "decays",
+    "2": "irreversible",
+    "note": "priority = how bad it gets if nobody handles it. 2 means it is already too late to undo."
+  },
+  "signal": {
+    "required": [
+      "ts",
+      "at",
+      "src",
+      "kind",
+      "state",
+      "value",
+      "evid"
+    ],
+    "optional": [
+      "rush",
+      "counts"
+    ],
+    "note": "numbers wherever a value can be compared or ordered; strings only for humans. rush defaults to 0."
+  },
+  "map": {
+    "exit_to_state": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 3
+    },
+    "state_to_rush": {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 1
+    },
+    "note": "the only place these decisions live. adapter reads them here; hardcoding them anywhere else is a bug (2026-11-08: exit 1 was mapped to fail)."
+  },
+  "id": "integer, only grows, never reused",
+  "archive": {
+    "dir": "track/archive",
+    "raw": "bus-YYYYMMDD.jsonl",
+    "summary": "bus-YYYYMMDD.summary.json",
+    "summary_required": [
+      "day",
+      "count",
+      "bySrc",
+      "byState",
+      "rushMax"
+    ],
+    "summary_types": {
+      "day": "string YYYY-MM-DD",
+      "count": "integer",
+      "bySrc": "object src->integer",
+      "byState": "object state->integer",
+      "rushMax": "integer 0..2"
+    },
+    "note": "raw lines are kept verbatim, one signal per line, unchanged. summary is aggregate counts only -- no text, so it can be compared and diffed."
+  },
+  "adapter_protocol": null,
+  "adapter_protocol_note": "null = private adapter per organ. When a common protocol exists, name it here and keep the private adapter as fallback.",
+  "tools": {
+    "note": "The tool layer has a contract too, just a different one. Organs talk over the bus (SIG); tools are called by a human and must say how to call them and how to tell success from failure.",
+    "contract": {
+      "call": "a param() block declares every input; no positional magic, no reading globals it did not declare",
+      "exit": "exit codes use the same table as above: 0 ok, 1 ok-with-warn, 2 fail, 3 cannot-judge",
+      "report": "one line of plain text stating what it did and where the evidence is; no SIG line required",
+      "root": "dot-source _root.ps1 (PowerShell) or import core/root.mjs (node); never hardcode the path"
+    },
+    "why": "Without a contract the tool layer drifts: each script invents its own exit codes and argument style, so nothing can be checked in the same way as organs. The contract differs from SIG, but it must exist (2026-11-08)."
+  },
+  "expect": {
+    "note": "The ONLY place expected values live. Comparison code reads them here; a threshold hardcoded anywhere else is a bug (same rule as map).",
+    "heartbeat": {
+      "interval_ms": 3000,
+      "tolerance": 3
+    },
+    "organ_cadence_source": "registry.cells[].every (minutes; 0 = on-demand, no freshness check)",
+    "rules": [
+      "heartbeat: a src7 signal should land within interval_ms * tolerance; drift is seconds late",
+      "organ: an organ with every>0 should have landed within 2*every minutes; drift is minutes late",
+      "cadence is not death: exceeding 2*every means hungry (state 1), never dead (state 3)"
+    ],
+    "why": "Comparison without a stated expectation is just a hardcoded number in disguise. Before 2026-11-08 these values were scattered across baseline.json, self-baseline.json and registry, and reflex had no way to know what 'normal' was.",
+    "drift": {
+      "note": "how much windowed violation counts as real. Prior art judges a window ratio (SLO burn rate) not an instant; a single restart must not raise an alarm.",
+      "state1_bp": 1000,
+      "state2_bp": 5000,
+      "why": "three percent violation over a window is noise from one restart; ten percent is a pattern; fifty percent is broken. Value on the bus is basis points (ratio * 10000)."
+    }
+  },
+  "source_language": {
+    "layers": "This is LAYERING, not exemption. There are two layers and each has its own language rule; neither is an exception to the other.",
+    "layer_core": {
+      "name": "core code -- the vessel",
+      "rule": "pure ASCII, no exception",
+      "what": [
+        "identifiers",
+        "protocol marks",
+        "parsed string literals",
+        "file names used as constants",
+        "field values written to the bus or to json data"
+      ],
+      "why": "user's wording (2026-11-08): core code is the blood vessel; a foreign body in it is a defect, not a style issue"
+    },
+    "layer_translation": {
+      "name": "translation layer -- what the person wants to read, so it is translated",
+      "rule": "any language, and it must live OUTSIDE the vessel",
+      "where": [
+        "locales/{zh,en}.json",
+        "comments",
+        "console output",
+        "error text meant for a person"
+      ],
+      "why": "user's wording (2026-11-08): the translation behind it exists because the person wants to see it, that is why it is translated"
+    },
+    "test": "ask one question per string: does a machine parse it? yes -> vessel (ASCII). no -> translation layer.",
+    "scope": [
+      "core/*.mjs",
+      "*.mjs",
+      "*.ps1",
+      "core/*.json",
+      "track/bus.jsonl"
+    ],
+    "why": "User definition (2026-11-08): 'if you write code, you write it by this standard; attaching a translation layer alongside is fine.' Chinese inside the vessel means the translation was inlined, not attached.",
+    "boundary_note": "The first version said 'no non-ASCII anywhere' and called the human-facing parts 'exempt'. Both were wrong: it would have demanded translating several thousand comment lines, and 'exempt' frames the translation layer as a loophole instead of a layer.",
+    "current_gap_2026_11_08": "No known violations in the vessel. core0.mjs (which parsed Chinese protocol marks) was archived to trash/2026-11/. human.mjs now reads its wording from locales.zh."
+  }
+}

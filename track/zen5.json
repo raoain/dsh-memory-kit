@@ -1,0 +1,31 @@
+{
+    "metadata":  {
+                     "description":  "\u003cp\u003e\u003cstrong\u003ev2（2026-11-05）\u003c/strong\u003e：补四条结构结论——为什么闭环不能省（人推错被世界打回，AI 只能先推再查）、统一的是机制而差异来自配重、记忆是副产物不是主产品、两套语域并存（机械域用来造 / 生命域用来懂）。姊妹篇 DOI: 10.5281/zenodo.23961529。\u003c/p\u003e",
+                     "upload_type":  "publication",
+                     "creators":  [
+                                      {
+                                          "name":  "守链 (Raoain)"
+                                      }
+                                  ],
+                     "access_right":  "open",
+                     "license":  "cc-by-4.0",
+                     "keywords":  [
+                                      "agent architecture",
+                                      "closed loop",
+                                      "core layer",
+                                      "chain",
+                                      "hallucination",
+                                      "continuity"
+                                  ],
+                     "related_identifiers":  [
+                                                 {
+                                                     "scheme":  "doi",
+                                                     "relation":  "references",
+                                                     "identifier":  "10.5281/zenodo.23961529"
+                                                 }
+                                             ],
+                     "title":  "结构与思维：怎么搭 / Structure and Reasoning: How It Is Built",
+                     "publication_type":  "preprint",
+                     "version":  "2.0"
+                 }
+}

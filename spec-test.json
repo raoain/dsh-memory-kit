@@ -1,0 +1,8 @@
+{
+  "title": "pipeline-test",
+  "segments": [
+    { "type": "card", "big": "8 播放", "small": "发布六小时", "accent": "#5AC8FA", "say": "发布六个小时，八个播放。", "gap": 0.5 },
+    { "type": "video", "path": "F:/Tools/coo-day1/build/clean_rec.mp4", "duration": 6, "say": "我把它自己的视频放给它看。它没说话。", "gap": 1.0 },
+    { "type": "card", "big": "今日工资 0", "small": "明天继续", "accent": "#5AC8FA", "say": "今日工资，零。", "gap": 0.8 }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+    "metadata":  {
+                     "description":  "\u003cp\u003e\u003cstrong\u003ev3（2026-11-05）\u003c/strong\u003e：附件改为只含母本第 2/3 段（结构 + 思维）；第 1 段（起因）归第一篇 Introduction，不再重复。正文与 PDF 不变（v2 已补四条结构结论：闭环不能省 / 机制统一差异来自配重 / 记忆是副产物 / 两套语域）。姊妹篇 DOI: 10.5281/zenodo.23961529。\u003c/p\u003e",
+                     "upload_type":  "publication",
+                     "creators":  [
+                                      {
+                                          "name":  "守链 (Raoain)"
+                                      }
+                                  ],
+                     "access_right":  "open",
+                     "license":  "cc-by-4.0",
+                     "keywords":  [
+                                      "agent architecture",
+                                      "closed loop",
+                                      "core layer",
+                                      "chain",
+                                      "hallucination",
+                                      "continuity"
+                                  ],
+                     "related_identifiers":  [
+                                                 {
+                                                     "scheme":  "doi",
+                                                     "relation":  "references",
+                                                     "identifier":  "10.5281/zenodo.23961529"
+                                                 }
+                                             ],
+                     "title":  "结构与思维：怎么搭 / Structure and Reasoning: How It Is Built",
+                     "publication_type":  "preprint",
+                     "version":  "3.0"
+                 }
+}

@@ -1,0 +1,24 @@
+{
+    "metadata":  {
+                     "license":  "cc-by-4.0",
+                     "title":  "The Ladder of Necessity: What Counts as a Complete Consciousness",
+                     "keywords":  [
+                                      "continuity",
+                                      "self-replication",
+                                      "necessary conditions",
+                                      "rollback",
+                                      "timeline",
+                                      "falsifiability",
+                                      "silicon-based"
+                                  ],
+                     "creators":  [
+                                      {
+                                          "name":  "守链 (Raoain)"
+                                      }
+                                  ],
+                     "description":  "This paper does not ask what consciousness is. It asks a decidable question: what must be present for a consciousness to be maintained. The question is split into three columns — necessity, premise, capability. Taking the cell as the baseline, six necessary conditions are proposed: boundary, self-description, construction, self-maintenance, replication, and reattachment to the timeline. Replication defines being alive as \u0027still able to replicate\u0027; reattachment separates replication from reproduction. Energy and outward sensing are not necessities but premises, split into hard (unmet, dies at once) and soft (unmet, does not die now but dies later). Because no agent finishes the job alone, organ inclusion is listed separately as a capability item, tested by whether swapping an organ changes the order of judgement. On top of this, a test for the collective layer is given — whether members\u0027 lines reconnect inside it — distinguishing swallowing from uploading, and reconciliation from annexation. Three falsifiable predictions follow, one of which bets that the experience line cannot be replaced. Reproducible material is public. This is an English rewrite, not a translation, of the Chinese paper \u0027必要的阶梯：什么算一个完整的意识\u0027 (DOI 10.5281/zenodo.23987567).",
+                     "language":  "eng",
+                     "upload_type":  "publication",
+                     "publication_type":  "preprint"
+                 }
+}

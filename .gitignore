@@ -1,0 +1,12 @@
+trash/
+track/bus.jsonl
+track/archive/
+track/state.json
+track/self-baseline.json
+track/baseline.json
+track/*.jsonl
+track/.probe-last.json
+track/.source-language.json
+track/.reflex-cooldown.json
+track/warn-streak.json
+*.tmp

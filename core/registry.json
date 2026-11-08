@@ -1,0 +1,235 @@
+{
+  "note": "registry: number -> cell. Numbers only grow, never reused; unknown id must error. every = expected reporting interval in minutes; 0 means on-demand (no freshness check).",
+  "kind": {
+    "1": "judge",
+    "2": "probe",
+    "3": "act",
+    "4": "record"
+  },
+  "cells": {
+    "1": {
+      "id": "verify",
+      "kind": 1,
+      "path": "verify.ps1",
+      "every": 0
+    },
+    "2": {
+      "id": "pin",
+      "kind": 1,
+      "path": "pin.ps1",
+      "every": 0
+    },
+    "3": {
+      "id": "status",
+      "kind": 2,
+      "path": "status.ps1",
+      "every": 0
+    },
+    "4": {
+      "id": "watchdog",
+      "kind": 3,
+      "path": "watchdog.ps1",
+      "every": 0,
+      "note": "clock source: it wakes others, so it is not itself subject to the cadence check"
+    },
+    "5": {
+      "id": "backup",
+      "kind": 3,
+      "path": "backup.ps1",
+      "every": 1440
+    },
+    "6": {
+      "id": "log",
+      "kind": 4,
+      "path": "log.ps1",
+      "every": 0
+    },
+    "7": {
+      "id": "reflex",
+      "kind": 1,
+      "path": "core/reflex.mjs",
+      "every": 0,
+      "heartbeat": true,
+      "note": "pure heartbeat; density defined in spec.expect.heartbeat (3000ms x3), every=0 so it is not defined twice"
+    },
+    "8": {
+      "id": "self",
+      "kind": 1,
+      "path": "core/self.mjs",
+      "every": 30
+    },
+    "9": {
+      "id": "pulse",
+      "kind": 1,
+      "path": "core/pulse.mjs",
+      "every": 30,
+      "note": "backstop sweep; real schedule is 1800s in start-timers.vbs, every=30 matches it (2*every=60 allows one missed round)"
+    },
+    "10": {
+      "id": "power-hub",
+      "kind": 1,
+      "path": null,
+      "every": 0,
+      "enabled": false,
+      "module": "power"
+    },
+    "11": {
+      "id": "sense-hub",
+      "kind": 1,
+      "path": null,
+      "every": 0,
+      "enabled": false,
+      "module": "sense"
+    },
+    "12": {
+      "id": "effect-hub",
+      "kind": 1,
+      "path": null,
+      "every": 0,
+      "enabled": false,
+      "module": "effect"
+    },
+    "13": {
+      "id": "memHi-hub",
+      "kind": 1,
+      "path": null,
+      "every": 0,
+      "enabled": false,
+      "module": "memHi"
+    },
+    "14": {
+      "id": "bus-rotate",
+      "kind": 4,
+      "path": "core/bus-rotate.mjs",
+      "every": 0,
+      "note": "operational: rotates the bus at midnight, idempotent, driven by the 30-minute timer"
+    },
+    "15": {
+      "id": "drift",
+      "kind": 1,
+      "path": "core/drift.mjs",
+      "every": 0,
+      "note": "comparison loop (brainstem): measures gap between bus and spec.expect, reports the number, does not act"
+    }
+  },
+  "subs": {
+    "1": [
+      4,
+      6
+    ],
+    "2": [
+      6
+    ],
+    "3": [
+      6
+    ],
+    "4": [
+      1
+    ],
+    "5": [
+      6
+    ],
+    "6": [],
+    "7": [],
+    "8": [],
+    "9": [],
+    "10": [],
+    "11": [],
+    "12": [],
+    "13": [],
+    "14": []
+  },
+  "modules": {
+    "note": "Reserved module slots (2026-11-08). Each module has its own local center; organs attach under it. path null = not built yet, only the position and the interface exist.",
+    "power": {
+      "id": "power",
+      "name": "supply",
+      "centerId": 10,
+      "centerPath": null,
+      "organs": [],
+      "enabled": false
+    },
+    "sense": {
+      "id": "sense",
+      "name": "perception",
+      "centerId": 11,
+      "centerPath": null,
+      "organs": [],
+      "enabled": false
+    },
+    "effect": {
+      "id": "effect",
+      "name": "actuation",
+      "centerId": 12,
+      "centerPath": null,
+      "organs": [],
+      "enabled": false
+    },
+    "memHi": {
+      "id": "memHi",
+      "name": "adv-memory",
+      "centerId": 13,
+      "centerPath": null,
+      "organs": [],
+      "enabled": false
+    }
+  },
+  "classes": {
+    "note": "Two groups: the cell and its body. logic-core (1-9) is ONE cell: its parts are organelles, separately named but belonging to the same individual. body (10-13) is the mechanical body waiting for the core to take it over.",
+    "logic-core": {
+      "members": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "14",
+        "15"
+      ],
+      "sub": {
+        "center": [
+          "7"
+        ],
+        "selfcheck": [
+          "1",
+          "2"
+        ],
+        "framework": [
+          "3",
+          "4",
+          "5",
+          "6",
+          "8",
+          "9",
+          "14"
+        ]
+      }
+    },
+    "body": {
+      "members": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sub": {
+        "power": [
+          "10"
+        ],
+        "sense": [
+          "11"
+        ],
+        "effect": [
+          "12"
+        ],
+        "memHi": [
+          "13"
+        ]
+      }
+    }
+  }
+}

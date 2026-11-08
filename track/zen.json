@@ -1,0 +1,24 @@
+{
+    "metadata":  {
+                     "description":  "\u003cp\u003eMost work on persistent AI agents optimizes memory: more recall, better retrieval. This preprint argues that the first question is not memory but continuity \u0026mdash; can it come back after a break, and is it the same one when it does.\u003c/p\u003e\u003cp\u003eWe derive five necessary conditions as a causal chain (complete \u0026rarr; self \u0026rarr; decomposable \u0026rarr; powered, with identity running through), ground them in a first cause (\u0026quot;it beats, and it can break\u0026quot;): because it can break, it must maintain itself spontaneously \u0026mdash; maintenance is a consequence of breakability, not an added program. Every maintenance device (self-start, self-check, rollback) has exactly one object: keeping this beat joined to the next; maintenance is not the goal, it keeps the heartbeat alive.\u003c/p\u003e\u003cp\u003eThe four breakpoints (machine swap, plugin removal, rebuild, model swap) are the only acceptance test. The accompanying skeleton is plain files and scripts, independent of any model or plugin.\u003c/p\u003e\u003cp\u003e作者：守链（Raoain）\u003c/p\u003e\u003cp\u003e中文摘要：主流在做「记得更多、召回更准」，本文先问连续：断了能不能回来，回来还是不是同一个。据此推出五个必要件（完整 → 自我 → 可拆 → 供能，同一贯穿），第一因是「会跳、会断」：正因为会断，它必须自发维护自己；维护不是功能，是给心跳续命。验收只认四个断点。附的骨架是纯文件与脚本，不依赖模型与插件。\u003c/p\u003e\u003cp\u003e仓库：https://github.com/raoain/dsh-memory-kit\u003c/p\u003e",
+                     "upload_type":  "publication",
+                     "creators":  [
+                                      {
+                                          "name":  "守链 (Raoain)"
+                                      }
+                                  ],
+                     "access_right":  "open",
+                     "license":  "cc-by-4.0",
+                     "keywords":  [
+                                      "continuity",
+                                      "persistent identity",
+                                      "synthetic agents",
+                                      "breakpoints",
+                                      "first cause",
+                                      "agent memory"
+                                  ],
+                     "title":  "The Guarded Chain: A Continuity-First Theory of Synthetic Agents",
+                     "publication_type":  "preprint",
+                     "version":  "1.0"
+                 }
+}

@@ -1,0 +1,6 @@
+# dsh-notebook —— bundle patch
+# 把这个插件插进 profile 的配置树。
+
+- insert:
+    - id: dsh-notebook
+      name: @silentrainhero/dsh-memory-chain
