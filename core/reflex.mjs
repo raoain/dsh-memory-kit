@@ -35,7 +35,16 @@ const rules = rulesFile.rules || []
 
 function matches(when, sig) {
   for (const [k, v] of Object.entries(when)) {
-    if (Number(sig[k]) !== Number(v)) return false
+    // 2026-11-08: rules use STATE NAMES (pass/warn/fail/unknown), not numbers. The numbers
+    // live in spec.state only -- if rules.json carried its own copy, renumbering in spec
+    // would silently disable a rule (same class as the thrice-copied state->rush).
+    let want = v
+    if (k === 'state' && typeof v === 'string') {
+      const found = Object.keys(SPEC.state).find((n) => SPEC.state[n] === v)
+      if (found === undefined) return false // unknown name: never match, never guess
+      want = found
+    }
+    if (Number(sig[k]) !== Number(want)) return false
   }
   return true
 }

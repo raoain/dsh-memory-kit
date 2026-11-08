@@ -1,5 +1,5 @@
 {
-    "updated":  "2026-11-08 13:06:12",
+    "updated":  "2026-11-08 13:09:50",
     "pins":  {
                  "doc.readme":  "05FA0B8DC896ED2D",
                  "script.intake.ps1":  "F65FFE6CBA719277",
@@ -73,7 +73,7 @@
                  "doc.glossary":  "88016DE6D82C1E78",
                  "script.load.mjs":  "1A8E21D1171F8736",
                  "sticky.filled":  "3/3",
-                 "lint.scriptCount":  "42",
+                 "lint.scriptCount":  "43",
                  "script._root.ps1":  "9C887041516F1E15",
                  "cfg.patch":  "407A85C3870B8808",
                  "script.trash.ps1":  "684161AA0F8DCB7A",
@@ -81,7 +81,7 @@
                  "script.predict.ps1":  "902C5B6EF52637E9",
                  "doc.seams":  "10",
                  "doc.plan":  "8D9BC2E570DDFA01",
-                 "core.bus.count":  "6566",
+                 "core.bus.count":  "6641",
                  "plug.index":  "6AF9524336A3D452",
                  "script.verify.ps1":  "072AF4499227390C",
                  "core.size":  "1954",
@@ -102,6 +102,7 @@
                  "doc.mathchain":  "C94DF5A9DA154B4D",
                  "script.enable-cua.ps1":  "CDBCD30E7C88B8AD",
                  "core.adapter.mjs":  "ED1435F224A9DD08",
-                 "script.baseline.ps1":  "AD6445758EDD8661"
+                 "script.baseline.ps1":  "AD6445758EDD8661",
+                 "script.snap.ps1":  "D1AF9590BF90DD4A"
              }
 }
