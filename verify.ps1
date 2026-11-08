@@ -1,4 +1,4 @@
-﻿﻿﻿# verify.ps1 — 一条命令核对「可核对的事实」，输出 OK / WARN / FAIL
+﻿﻿﻿﻿# verify.ps1 — 一条命令核对「可核对的事实」，输出 OK / WARN / FAIL
 #
 # 为什么要有这个：所有反馈都是事后型（等你发现、等 12 小时、等我看输出不对）。
 # 快速迭代需要「改完当场暴露」的机制，而它必须便宜到能随手跑（目标 <5 秒）。
@@ -796,8 +796,16 @@ if (-not (Test-Path $regPath)) {
 $hbAge = 9999
 $hbOut = & node (Join-Path $Root 'core\timers-alive.mjs') 2>$null
 if ($hbOut) { [void][int]::TryParse(("$hbOut".Trim()), [ref]$hbAge) }
-if ($hbAge -eq 9999) { Add-Result 'FAIL' '心跳活着' '读不到心跳（timers-alive.mjs 无输出）' }
-elseif ($hbAge -gt 300) { Add-Result 'FAIL' '心跳活着' ("心跳已停 {0} 秒（应每 3 秒一跳）" -f $hbAge) }
+
+# 阈值从 spec.expect 读，不写死（2026-11-08 实测：断了 103 秒它报 OK，因为写死 300 秒）。
+# 心跳期望 = interval_ms * tolerance = 9000 ms = 9 秒。
+$hbLimitSec = 9
+try {
+    $specJ = Get-Content (Join-Path $Root 'core\spec.json') -Encoding UTF8 -Raw | ConvertFrom-Json
+    $hbLimitSec = [math]::Round($specJ.expect.heartbeat.interval_ms * $specJ.expect.heartbeat.tolerance / 1000)
+} catch { }
+if ($hbLimitSec -lt 3) { $hbLimitSec = 9 }if ($hbAge -eq 9999) { Add-Result 'FAIL' '心跳活着' '读不到心跳（timers-alive.mjs 无输出）' }
+elseif ($hbAge -gt $hbLimitSec) { Add-Result 'FAIL' '心跳活着' ("心跳已停 {0} 秒（上限 {1} 秒，来自 spec.expect.heartbeat）" -f $hbAge, $hbLimitSec) }
 else { Add-Result 'OK' '心跳活着' ("{0} 秒前还有一跳" -f $hbAge) }
 
 # 49. 唯一根定义：根路径只允许在 _root.ps1 / core/root.mjs 里定义
