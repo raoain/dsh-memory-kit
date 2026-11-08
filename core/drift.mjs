@@ -58,9 +58,15 @@ const inWindow = bus.filter((r) => Number(r.ts) >= cutoff)
 // how many samples were "late"? The window must be longer than the period being observed,
 // otherwise the answer measures "the window is too short", not "it is late" (2026-11-08:
 // a 30-minute window over a 30-minute organ reported 19% violation that did not exist).
-function violatedSamples(stamps, limitMs) {
-  if (!stamps.length) return { violated: 0, total: 0, last: null, window_ms: 0 }
-  const winMs = Math.max(WINDOW_MS, limitMs * 2)
+//
+// 2026-11-08 v3, after a real fault test: the heartbeat was stopped for 103 seconds
+// (completely dead -- it should beat every 3 s) and this reported state=0 value=645bp,
+// i.e. it said everything was fine. Cause: a single 30-minute window averages a short
+// outage away. 103 s of death inside 1800 s of window is only 6% of samples.
+// Fix = what SLO burn-rate alerting actually does: judge SEVERAL windows at once and take
+// the worst. A short window catches acute failure; a long one catches slow decay.
+function violatedSamples(stamps, limitMs, winMs) {
+  if (!stamps.length) return { violated: 0, total: 0, last: null, window_ms: winMs }
   const from = now - winMs
   const sorted = [...stamps].sort((a, b) => a - b)
   let violated = 0
@@ -78,10 +84,32 @@ function violatedSamples(stamps, limitMs) {
 const esper = SPEC.expect
 const rows = []
 
+// window set: the short one guards against acute failure, the long one against slow decay.
+// Both must be longer than the observed period (a window shorter than the period measures
+// the window, not the organ).
+function windowsFor(limitMs) {
+  const short = Math.max(5 * 60 * 1000, limitMs * 2)
+  const long = Math.max(30 * 60 * 1000, limitMs * 2)
+  return short === long ? [long] : [short, long]
+}
+
+function judge(what, limitMs, stamps) {
+  const wins = windowsFor(limitMs)
+  let worst = { violated: 0, total: 0, bp: 0, window_ms: 0 }
+  for (const w of wins) {
+    const st = violatedSamples(stamps, limitMs, w)
+    const bp = st.total ? Math.round((st.violated / st.total) * 10000) : 0
+    if (bp > worst.bp) worst = { ...st, bp, window_ms: w }
+  }
+  // also keep the acute reading separately so a short outage is never hidden by a long window
+  const acute = violatedSamples(stamps, limitMs, wins[0])
+  const acuteBp = acute.total ? Math.round((acute.violated / acute.total) * 10000) : 0
+  return { what, limit_ms: limitMs, bp: worst.bp, window_ms: worst.window_ms, acute_bp: acuteBp, last: worst.last }
+}
+
 // 1) heartbeat
 const hbLimit = esper.heartbeat.interval_ms * esper.heartbeat.tolerance
-const hbStat = violatedSamples(bySrc.get('7') || [], hbLimit)
-rows.push({ what: 'heartbeat', limit_ms: hbLimit, ...hbStat })
+rows.push(judge('heartbeat', hbLimit, bySrc.get('7') || []))
 
 // 2) organs with a cadence
 for (const [id, cell] of Object.entries(REG.cells || {})) {
@@ -89,21 +117,19 @@ for (const [id, cell] of Object.entries(REG.cells || {})) {
   const every = Number(cell.every ?? 0)
   if (!(every > 0)) continue
   const limit = every * 60 * 1000 * 2
-  const st = violatedSamples(bySrc.get(String(id)) || [], limit)
-  rows.push({ what: `organ_${id}_${cell.id}`, limit_ms: limit, ...st })
+  rows.push(judge(`organ_${id}_${cell.id}`, limit, bySrc.get(String(id)) || []))
 }
 
-// ratio per row; the reported value is the worst ratio in basis points
+// the reported value is the worst of (worst window bp, acute window bp). The acute reading is
+// folded in so a short outage can never be averaged away by the long window.
 let worstBp = 0
 for (const r of rows) {
-  r.ratio = r.total ? r.violated / r.total : 0
-  r.bp = Math.round(r.ratio * 10000)
+  r.bp = Math.max(r.bp || 0, r.acute_bp || 0)
   if (r.bp > worstBp) worstBp = r.bp
 }
 
-// also report the worst change: a row that was fine and just started violating is different
-// from one that has been violating the whole window (prior art's "error difference")
-const breached = rows.filter((r) => r.ratio > 0)
+// a row counts as breached when any window says so
+const breached = rows.filter((r) => r.bp > 0)
 
 // severity thresholds live in spec.expect.drift too -- "how much counts as real" is part of
 // the expectation, not a number to invent here (2026-11-08).
@@ -117,7 +143,6 @@ const payload = {
   state,
   value: worstBp,
   evid: `drift:${breached.length}/${rows.length}:${worstBp}bp`,
-  window_ms: WINDOW_MS,
   rows,
 }
 
