@@ -46,19 +46,44 @@ function alive(pid) {
 }
 
 // --- single instance check -----------------------------------------------------------
-let holder = 0
-if (existsSync(lockP)) {
-  const raw = readFileSync(lockP, 'utf8').trim()
-  holder = Number(raw)
-  if (holder && holder !== process.pid && alive(holder)) {
-    // another loop of this name is running: do nothing, this is the desired state
-    if (process.argv.includes('--verbose')) {
-      console.log(`[loop ${name}] already running as pid ${holder}, exiting`)
+// 2026-11-08: existsSync-then-writeFileSync is NOT atomic -- two loops started at the same
+// moment both see "no lock" and both write their own pid, which is exactly how seven node
+// loops ended up running while four locks existed. Claim the lock by CREATING it exclusively
+// ('wx' fails if it exists); only after losing that race do you read what is inside.
+import { openSync, writeSync, closeSync, unlinkSync as rmSync } from 'node:fs'
+
+function claimLock() {
+  try {
+    const fd = openSync(lockP, 'wx')
+    writeSync(fd, String(process.pid))
+    closeSync(fd)
+    return { ok: true, holder: process.pid }
+  } catch {
+    let holder = 0
+    try { holder = Number(readFileSync(lockP, 'utf8').trim()) } catch { /* unreadable */ }
+    if (holder && holder !== process.pid && alive(holder)) return { ok: false, holder }
+    // stale lock (holder gone): remove and try once more
+    try { rmSync(lockP) } catch { /* ignore */ }
+    try {
+      const fd = openSync(lockP, 'wx')
+      writeSync(fd, String(process.pid))
+      closeSync(fd)
+      return { ok: true, holder: process.pid }
+    } catch {
+      let h2 = 0
+      try { h2 = Number(readFileSync(lockP, 'utf8').trim()) } catch { /* ignore */ }
+      return { ok: false, holder: h2 || holder }
     }
-    process.exit(0)
   }
 }
-writeFileSync(lockP, String(process.pid), 'utf8')
+
+const claim = claimLock()
+if (!claim.ok) {
+  if (process.argv.includes('--verbose')) {
+    console.log(`[loop ${name}] already running as pid ${claim.holder}, exiting`)
+  }
+  process.exit(0)
+}
 
 let stopped = false
 function cleanup() {
@@ -79,7 +104,15 @@ if (process.argv.includes('--once')) {
 while (!stopped) {
   const started = Date.now()
   try {
-    spawnSync(cmd[0], cmd.slice(1), { stdio: 'ignore' })
+    // 2026-11-08: spawnSync BLOCKS. If the child hangs, this loop hangs with it, the lock
+    // stays held, and nothing can take over -- the chain freezes and the heartbeat stops
+    // because the heartbeat writer itself is stuck. That is a system that strangles itself.
+    // So every round gets a deadline: longer than any honest round, shorter than patience.
+    const timeoutMs = Math.min(120000, Math.max(30000, every * 1000 * 4))
+    const r = spawnSync(cmd[0], cmd.slice(1), { stdio: 'ignore', timeout: timeoutMs })
+    if (r.error && r.error.code === 'ETIMEDOUT') {
+      console.error(`[loop ${name}] round exceeded ${timeoutMs}ms, killed the child and continuing`)
+    }
   } catch { /* a single failed round must not kill the loop */ }
   const spent = Date.now() - started
   const wait = Math.max(1000, every * 1000 - spent)
