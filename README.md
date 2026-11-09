@@ -25,7 +25,7 @@
 |---|---|---|
 | 心跳 | 中枢每 3 秒一跳，总线 5000+ 条 | `core\reflex.mjs` + `start-timers.vbs` |
 | 总线 | 一行一个信号，按天轮转归档 | `track\bus.jsonl` / `track\archive\` |
-| 契约 | spec v5：信号 7 必填 + exit/state/rush 映射 + 归档格式 + 工具四条 | `core\spec.json` |
+| 契约 | spec v5：信号 7 必填 + exit/state/rush 映射 + 归档格式 + 工具五条 | `core\spec.json` |
 | 登记 | 14 个器官位，分两类（logic-core 一个细胞 / body 四个模块） | `core\registry.json` |
 | 自检 | verify 51 项 / lint 0 处 / probe 8 个探针 | `verify.ps1` `lint.ps1` `probe.ps1` |
 | 收工 | log 留痕 + 双盘备份 + 便签三条 | `log.ps1` `backup-notes.ps1` `close.ps1` |
@@ -82,7 +82,7 @@ node core\timers-alive.mjs        # 输出「多少秒前还有一跳」；>300 
 | 层 | 契约 | 查法 |
 |---|---|---|
 | 器官（10 个） | 登记在 `registry.json` + 吐一行 `SIG {"state":N,"counts":[...]}` | `node scripts-inventory.mjs`（吐SIG 列） |
-| 工具（49 个） | `call` 有 `param()` / `exit` 只用 0-3 / `report` 一行 / `root` 点源 | `.\lint.ps1`（contract 类）+ `node count-violations.mjs` |
+| 工具（49 个） | `call` 有 `param()` / `exit` 只用 0-3 / `report` 一行 / `root` 点源 / `bom` 恰好一个 BOM | `.\lint.ps1`（contract 类）+ `node count-violations.mjs` |
 | 根路径 | **只在 `_root.ps1`（PowerShell）与 `core/root.mjs`（node）定义一次** | `node check-naming.mjs`（只数定义处） |
 | 字段语义 | `core/spec.json`（signal / exit / state / rush / map / archive / tools / source_language） | `verify` 第 46 项「核心纯 ASCII」 |
 
@@ -114,6 +114,7 @@ notebook\    十四页，按「谁读它」分层
   8-原话      只收能打开出处的原句  9-用户  他怎么说话
   10-链       五条链与验证链 V1-V5  11-结论  目前成立的结论
   12-判据-专项 13-对照  我们 vs 主流
+  14-身份     我是谁（核心层只留指针）
 
 core\        逻辑核心
   spec.json      契约（唯一出处）
