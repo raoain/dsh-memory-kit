@@ -1,0 +1,13 @@
+{
+  "lang": "en",
+  "src": { "1": "verify", "2": "pin", "3": "status", "4": "watchdog", "5": "backup", "6": "log" },
+  "kind": { "1": "judge", "2": "probe", "3": "act", "4": "record" },
+  "state": { "0": "pass", "1": "warn", "2": "fail", "3": "unknown" },
+  "unknownSrc": "cell",
+  "unknownState": "unknown-state",
+  "counts": "{N0} checks, {N1} pass, {N2} warn, {N3} fail",
+  "countsRaw": "counts={V}",
+  "parseFail": "unparseable line",
+  "noBus": "no bus yet",
+  "emptyBus": "bus is empty"
+}

@@ -1,0 +1,27 @@
+trash/
+track/bus.jsonl
+track/archive/
+track/state.json
+track/self-baseline.json
+track/baseline.json
+track/*.jsonl
+track/.probe-last.json
+track/.source-language.json
+track/.reflex-cooldown.json
+track/warn-streak.json
+*.tmp
+
+# 2026-11-09 运行期状态：机器写的东西不进版本历史（版本历史记代码与文档）
+track/.locks/
+track/out/
+track/mind/
+track/align/
+track/own/
+track/.arbiter.json
+track/.brain-cooldown.json
+track/.consolidate-cursor.json
+track/drift-pending.json
+track/drift-raw.json
+track/drift-streak.json
+track/center.json
+track/0-核心.bak-*.md

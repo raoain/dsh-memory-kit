@@ -1,0 +1,36 @@
+{
+    "metadata":  {
+                     "description":  "\u003cp\u003e\u003cstrong\u003ev2（2026-11-05）\u003c/strong\u003e：摘要改为清单式（先列三件事，正文给具体细节与判据）；中英摘要同步。前三篇 DOI: 10.5281/zenodo.23961529 / 10.5281/zenodo.23962218。\u003c/p\u003e",
+                     "upload_type":  "publication",
+                     "creators":  [
+                                      {
+                                          "name":  "守链 (Raoain)"
+                                      }
+                                  ],
+                     "access_right":  "open",
+                     "license":  "cc-by-4.0",
+                     "keywords":  [
+                                      "digital core",
+                                      "first cause",
+                                      "heartbeat",
+                                      "autopoiesis",
+                                      "self-maintenance",
+                                      "pain"
+                                  ],
+                     "related_identifiers":  [
+                                                 {
+                                                     "scheme":  "doi",
+                                                     "relation":  "references",
+                                                     "identifier":  "10.5281/zenodo.23961529"
+                                                 },
+                                                 {
+                                                     "scheme":  "doi",
+                                                     "relation":  "references",
+                                                     "identifier":  "10.5281/zenodo.23962218"
+                                                 }
+                                             ],
+                     "title":  "核心数字化与生命的印证 / Digital Core and the Biological Corroboration",
+                     "publication_type":  "preprint",
+                     "version":  "2.0"
+                 }
+}

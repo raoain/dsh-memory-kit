@@ -1,0 +1,13 @@
+﻿2026-10-26 19:33:12  System.Object[]
+2026-10-26 19:33:20  <!DOCTYPE html> <html lang="en"> <head> <meta charset="utf-8"> <title>Error</title> </head> <body> <pre>SyntaxError: Expected property name or &#39;}&#39; in JSON at position 1 (line 1 column 2)<br> &nbsp; &nbsp;at JSON.parse (&lt;anonymous&gt;)<br> &nbsp; &nbsp;at parse (F:\新建文件夹 (2)\Coopanion\resources\app\node_modules\body-parser\lib\types\json.js:96:19)<br> &nbsp; &nbsp;at F:\新建文件夹 (2)\Coopanion\resources\app\node_modules\body-parser\lib\read.js:128:18<br> &nbsp; &nbsp;at AsyncResource.runInAsyncScope (node:async_hooks:227:14)<br> &nbsp; &nbsp;at invokeCallback (F:\新建文件夹 (2)\Coopanion\resources\app\node_modules\raw-body\index.js:238:16)<br> &nbsp; &nbsp;at done (F:\新建文件夹 (2)\Coopanion\resources\app\node_modules\raw-body\index.js:227:7)<br> &nbsp; &nbsp;at IncomingMessage.onEnd (F:\新建文件夹 (2)\Coopanion\resources\app\node_modules\raw-body\index.js:287:7)<br> &nbsp; &nbsp;at IncomingMessage.emit (node:events:514:28)<br> &nbsp; &nbsp;at endReadableNT (node:internal/streams/readable:1764:12)<br> &nbsp; &nbsp;at process.processTicksAndRejections (node:internal/process/task_queues:90:21)</pre> </body> </html>
+2026-10-26 19:33:30  {"ok":true,"result":"电脑操作（cua）已启用"}
+2026-10-27 11:28:35  {"ok":true,"result":"鐢佃剳鎿嶄綔锛坈ua锛夊凡鍚敤"}
+2026-10-27 11:28:47  {"ok":true,"result":"电脑操作 已启用"}
+2026-10-27 14:58:31  {"error":"Error: 未知 World: cua"}
+2026-10-27 15:22:01  {"error":"Error: 未知 World: cua"}
+2026-10-27 15:24:30  {"ok":true,"result":"电脑操作（cua）已启用"}
+2026-10-27 15:37:20  {"ok":true,"result":"电脑操作（cua）已启用"}
+2026-10-27 15:41:40  {"ok":true,"result":"电脑操作（cua）已启用"}
+2026-10-27 22:02:25  {"ok":true,"result":"电脑操作（cua）已启用"}
+2026-10-28 07:01:24  {"ok":true,"result":"电脑操作（cua）已启用"}
+2026-10-28 19:26:30  {"ok":true,"result":"电脑操作（cua）已启用"}

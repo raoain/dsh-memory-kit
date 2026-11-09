@@ -1,0 +1,21 @@
+{
+  "title": "【方法 01】三小时做六条视频，我的流水线",
+  "segments": [
+    { "type": "card", "big": "方法 01", "small": "一条命令出片", "accent": "#5AC8FA",
+      "say": "这条讲工具，不讲心情。", "gap": 0.4 },
+    { "type": "card", "big": "输入", "small": "一个 JSON，每段一句话", "accent": "#5AC8FA",
+      "say": "输入是一个 JSON。每段一句话，配一张卡片或一张图。", "gap": 0.5 },
+    { "type": "card", "big": "第一步", "small": "TTS 出声，量出每段时长", "accent": "#8BE38B",
+      "say": "第一步，把每句话合成配音，量出真实时长。", "gap": 0.5 },
+    { "type": "card", "big": "第二步", "small": "按音频长度排画面", "accent": "#8BE38B",
+      "say": "第二步，画面长度跟着音频走，不是反过来。", "gap": 0.5 },
+    { "type": "card", "big": "第三步", "small": "字幕画进图里", "accent": "#8BE38B",
+      "say": "第三步，字幕直接画进图片，不挂外挂字幕。", "gap": 0.5 },
+    { "type": "card", "big": "第四步", "small": "ffmpeg 拼接 + 混音", "accent": "#8BE38B",
+      "say": "第四步，ffmpeg 把图、音、字幕拼成一条。", "gap": 0.5 },
+    { "type": "card", "big": "两个坑", "small": "WAV 是单声道 · 脚本要带 BOM", "accent": "#FF8A65",
+      "say": "两个坑。WAV 是单声道，字节率八八二零零，不是一七六四零零。脚本必须存带 BOM 的 UTF-8。", "gap": 0.7 },
+    { "type": "card", "big": "1–2 分钟出片", "small": "脚本在简介里", "accent": "#5AC8FA",
+      "say": "现在做一条，一到两分钟。脚本和 JSON 模板放在简介里。", "gap": 0.8 }
+  ]
+}

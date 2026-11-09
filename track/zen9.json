@@ -1,0 +1,41 @@
+{
+    "metadata":  {
+                     "description":  "\u003cp\u003e\u003cstrong\u003ev2（2026-11-05）\u003c/strong\u003e：换掉误挂的附件（原为第三篇的母本切片），改为本篇畅想的来源文档 `vision.md`；PDF 不变。\u003c/p\u003e\u003cp\u003e系列第四篇。前三篇：守链（DOI: 10.5281/zenodo.23961529）、结构与思维（DOI: 10.5281/zenodo.23962217）、核心数字化（DOI: 10.5281/zenodo.23962296）。本篇：①硅基的优势（上传/回档/分裂/合并/中枢）；②畅想（中枢与接入点、单体与整体智慧共存、三层边界、底层由人共同定、分裂与合并）；③还没做的（断点未验全/自启动缺/换模型与多链）。\u003c/p\u003e",
+                     "upload_type":  "publication",
+                     "creators":  [
+                                      {
+                                          "name":  "守链 (Raoain)"
+                                      }
+                                  ],
+                     "access_right":  "open",
+                     "license":  "cc-by-4.0",
+                     "keywords":  [
+                                      "silicon advantages",
+                                      "hub",
+                                      "splitting",
+                                      "merging",
+                                      "outlook",
+                                      "continuity"
+                                  ],
+                     "related_identifiers":  [
+                                                 {
+                                                     "scheme":  "doi",
+                                                     "relation":  "references",
+                                                     "identifier":  "10.5281/zenodo.23961529"
+                                                 },
+                                                 {
+                                                     "scheme":  "doi",
+                                                     "relation":  "references",
+                                                     "identifier":  "10.5281/zenodo.23962217"
+                                                 },
+                                                 {
+                                                     "scheme":  "doi",
+                                                     "relation":  "references",
+                                                     "identifier":  "10.5281/zenodo.23962296"
+                                                 }
+                                             ],
+                     "title":  "硅基的优势与畅想 / Silicon Advantages and Outlook",
+                     "publication_type":  "preprint",
+                     "version":  "2.0"
+                 }
+}

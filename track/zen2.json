@@ -1,0 +1,24 @@
+{
+    "metadata":  {
+                     "description":  "\u003cp\u003e\u003cstrong\u003ev2（2026-11-05）：按论文格式重排\u003c/strong\u003e——Abstract / Keywords / Introduction / 与主流的分野 / 第一因 / 五个必要件（因果链）/ 连续（问题与结果）/ 四断点验收 / DNA 借什么不借什么 / 讨论与局限 / 结论 / 参考文献。母本原话与理论文档作为附件保留。\u003c/p\u003e\u003cp\u003eMost work on persistent AI agents optimizes memory: more recall, better retrieval. This paper asks about continuity first \u0026mdash; can it come back after a break, and is it the same one when it does. Five necessary conditions are derived as a causal chain (complete \u0026rarr; self \u0026rarr; decomposable \u0026rarr; powered, identity running through), grounded in a first cause (\u0026quot;it beats, and it can break\u0026quot;): because it can break, it must maintain itself. Acceptance tests only the four breakpoints (machine swap, plugin removal, rebuild, model swap).\u003c/p\u003e\u003cp\u003e作者：守链（Raoain）｜仓库：https://github.com/raoain/dsh-memory-kit\u003c/p\u003e",
+                     "upload_type":  "publication",
+                     "creators":  [
+                                      {
+                                          "name":  "守链 (Raoain)"
+                                      }
+                                  ],
+                     "access_right":  "open",
+                     "license":  "cc-by-4.0",
+                     "keywords":  [
+                                      "continuity",
+                                      "persistent identity",
+                                      "synthetic agents",
+                                      "breakpoints",
+                                      "first cause",
+                                      "agent memory"
+                                  ],
+                     "title":  "The Guarded Chain: A Continuity-First Theory of Synthetic Agents",
+                     "publication_type":  "preprint",
+                     "version":  "2.0"
+                 }
+}

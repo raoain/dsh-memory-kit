@@ -1,0 +1,8 @@
+﻿大肥鱼长期记忆插件
+作者：Mllun · 赞 0 · 评论 146
+链接：https://www.xiaoheihe.cn/app/bbs/link/e70072aee61b
+话题：#ai.ai#
+图片：https://imgheybox1.max-c.com/bbs/2026/10/21/867fff1713f7bfd9ce51e123ec48b0d7/thumb.png?imageMogr2/auto-orient/ignore-error/1/format/jpg/thumbnail/850x1450%3E
+给 DeepSeek Harness 的分层长期记忆：一个约 600 字、每次会话必读的热层，一份按月归档、可按关键词跨月召回的冷层全文，以及日 → 周 → 月三级抽取式摘要。目标是在不撑大上下文的前提下，让很久以前的细节仍然找得回来。
+已发GitHub
+dsh-memory-layers

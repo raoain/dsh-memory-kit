@@ -1,136 +1,148 @@
-# 守链 · dsh-memory-kit
+# 守链 · coo-day1
 
-> **换一个窗口之后，它还是不是同一个人 —— 靠的是文件，不靠插件。**
+> 一句话：**让一个东西连续地活着，并给出可验收的判据。**
+> 验收看四个断点：换机器 / 拔插件 / 重建 / 换模型。
 
-## 骨架实现（能跑的）
+---
 
-skeleton/ 是数字骨架的完整实现：总线 / 适配器 / 派发 / 语言转换 / 时间转换，七个文件，见 [skeleton/README.md](skeleton/README.md)。
+## 一、来的人先看这里（五问）
 
-## 宏大目标
-
-一句话：**让一个东西连续地活着，并给出可验收的判据。**
-
-- 这里给的是**方向**：完整 → 自我 → 可拆 → 供能 → 同一，五个必要条件，四断点验收；
-- 具体机理与器官（情绪层、记忆层、接口细节）**没有写**——那是后面的事，也是开放的部分；
-- 如果你发现方向上的不同（因果接不上、必要条件不成立），请直接指出——这比补细节更有价值。
-
-## 骨架实现（能跑的）
-
-skeleton/ 是数字骨架的完整实现：总线 / 适配器 / 派发 / 语言转换 / 时间转换，七个文件，见 [skeleton/README.md](skeleton/README.md)。
-
-## 从哪里开始（四层，按需要往下读）
-
-| 层 | 读什么 | 什么时候读 |
+| 你的问题 | 答案在这 | 说明 |
 |---|---|---|
-| ① 入口 | 这一页 | 第一次来，先知道这是什么 |
-| ② 最简单做 | [docs/QUICKSTART.md](docs/QUICKSTART.md) —— 五分钟四步 | 想先跑起来 |
-| ③ 表层解释 | [SKELETON.md](SKELETON.md) —— 五段分工、模块化、迁移 | 想知道骨架怎么搭 |
-| ④ 深入 | [docs/theory/](docs/theory/) —— 原话母本 → F1–F6 → 因果链 → 畅想 | 想知道为什么这样搭、想反驳 |
-| ⑤ 做法（第二篇） | [docs/theory/papers/structure-and-gears.md](docs/theory/papers/structure-and-gears.md) · [DOI 10.5281/zenodo.23962217](https://doi.org/10.5281/zenodo.23962217) —— 结构与思维（论文格式） | 想知道怎么搭 |
-| ⑥ 建议与畅想（第三篇） | [docs/theory/papers/digital-core-and-biology.md](docs/theory/papers/digital-core-and-biology.md) · [DOI 10.5281/zenodo.23962296](https://doi.org/10.5281/zenodo.23962296) —— 核心数字化 + 生物印证 | 想知道核心交给什么 |
-| ⑦ 优势与畅想（第四篇） | [docs/theory/papers/follow-ups-and-outlook.md](docs/theory/papers/follow-ups-and-outlook.md) · [DOI 10.5281/zenodo.23962899](https://doi.org/10.5281/zenodo.23962899) —— 硅基优势 + 中枢与单体 + 还没做的 | 想知道能长成什么样 |
-| ★ 发布前自检 | [docs/RELEASE-CHECKLIST.md](docs/RELEASE-CHECKLIST.md) —— 六类检查，每条来自一次真实翻车 | 要发版/发论文前 |
-| ⑧ 学术记录（第一篇） | [DOI 10.5281/zenodo.23961529](https://doi.org/10.5281/zenodo.23961529) —— 论文 v2（论文格式）+ 理论五篇附件；概念 DOI 永远指向最新版 | 要引用、要时间戳、或看正式版 |
+| **这套东西是什么？** | 本节 + 第二节 | 判断链要能断而可接，「还是不是同一个」要能验 |
+| **现在到什么程度？** | 第二节「现在的样子」 | 骨架齐了、标准定了、还缺什么写清楚了 |
+| **怎么跑起来？** | 第三节 | 两条命令：开工 `start.ps1`、收工 `close.ps1` |
+| **每层契约在哪？** | 第四节 | 器官看 `spec.json`，工具看 `spec.tools.contract`，根看 `_root.ps1` |
+| **判据在哪？** | 第五节 | `notebook\5-判据.md` 22 条，每条带「什么能推翻」 |
 
-只想反驳的，直接进 [ASK-TO-FALSIFY](docs/theory/notes/ASK-TO-FALSIFY.md)；想看畅想的，进 [vision](docs/theory/notes/vision.md)。
-## 骨架实现（能跑的）
+---
 
-skeleton/ 是数字骨架的完整实现：总线 / 适配器 / 派发 / 语言转换 / 时间转换，七个文件，见 [skeleton/README.md](skeleton/README.md)。
+## 二、现在的样子（2026-11-08）
 
-## 一、最小能跳体（现在就能用）
+### 已经能跑
 
-三个文件 + 两条命令，不装插件：
+| 件 | 现状 | 在哪 |
+|---|---|---|
+| 心跳 | 中枢每 3 秒一跳，总线 5000+ 条 | `core\reflex.mjs` + `start-timers.vbs` |
+| 总线 | 一行一个信号，按天轮转归档 | `track\bus.jsonl` / `track\archive\` |
+| 契约 | spec v5：信号 7 必填 + exit/state/rush 映射 + 归档格式 + 工具五条 | `core\spec.json` |
+| 登记 | 14 个器官位，分两类（logic-core 一个细胞 / body 四个模块） | `core\registry.json` |
+| 自检 | verify 51 项 / lint 0 处 / probe 8 个探针 | `verify.ps1` `lint.ps1` `probe.ps1` |
+| 收工 | log 留痕 + 双盘备份 + 便签三条 | `log.ps1` `backup-notes.ps1` `close.ps1` |
+| 脚手架 | 五样借来的东西都记了「以后换成什么」 | `track\脚手架清单.md` |
+| 脚本表 | 62 个文件自动生成清单，带层与契约违规列 | `track\脚本清单.md` |
 
-```
-0-核心.md    每次开工必读的一页（我是谁、使用者是谁、三条纪律；压到 2 KB 内）
-1-工作.md    最近在做什么（读最近一屏）
-2-档案.md    按需查的坑与修法
-```
+### 还缺什么（诚实清单）
+
+1. **比较环**：中枢只按游标扫新信号，不回答「此刻整体该是什么状态、偏了多少」。
+2. **免疫处置**：`self` 只会识别、`pulse` 只会报饿，都不会修/拒/补。
+3. **身体**：10-13 四个模块只有位置和接口（`path: null`），没实现。
+4. **物理件**：电源、时钟、供能在宿主手里（Windows 启动文件夹 + `wscript`）。
+5. **代码仍带中文**：71 行非注释代码里有中文，按 `spec.source_language` 该清掉、把中文移到并联翻译层。
+
+---
+
+## 三、怎么跑起来
+
+### 开工（每次会话第一件事）
 
 ```powershell
-powershell -NoProfile -File scripts/wake.ps1      # 醒来：读核心层 + 工作层
-powershell -NoProfile -File scripts/selfcheck.ps1 # 自检：结构 + 值
+.\start.ps1
 ```
 
-判断够不够，只看三件：**能自己读核心层、能自己写工作层、断了能从文件捡回来。**
+一条命令跑完四件：`wake`（读核心层+本机+用户+工作层，留时间戳）→ `verify`（51 项）→ `pin -Diff`（102 项对账）→ `probe`（8 个探针）。**只贴 WARN / FAIL，全绿就一句话。**
 
-完整四步（含 git/gh、模板、自动化）见 [docs/QUICKSTART.md](docs/QUICKSTART.md)；骨架细节（五段分工、下降判据、模块化、迁移）见 [SKELETON.md](SKELETON.md)，这里不重复。
+### 收工
 
-## 骨架实现（能跑的）
+```powershell
+.\close.ps1 -Where "刚聊到哪" -Promise "答应了什么" -Next "下次接着说什么"
+```
 
-skeleton/ 是数字骨架的完整实现：总线 / 适配器 / 派发 / 语言转换 / 时间转换，七个文件，见 [skeleton/README.md](skeleton/README.md)。
+### 定时器（心跳从哪来）
 
-## 二、结构解释（只留判据）
+```
+启动文件夹 coo-watchdog.cmd   → 守卫（心跳 90 秒内就跳过）→ wscript start-timers.vbs
+start-timers.vbs               → 三条 while：watchdog 5 分钟 / 中枢 3 秒 / pulse+self+rotate 30 分钟
+```
 
-- **分层**：核心层每次读 / 工作层读一屏 / 档案层按需查。判据：不知道会不会立刻做错事？会 → 核心层。
-- **五格**：完整、自我、可拆、供能、同一——互相是前提，不是并列。
-- **四断点**：换机 / 拔插件 / 重建 / 换模型；每个断点跑一遍：起来、读得懂、判断不变、能回档。
-- **检查器**：`verify.ps1` 查结构、`pin.ps1` 查值（漂移报 DRIFT）、`probe.ps1` 查检查器自己（假样本必须被拒）。判据：**报对没用，得报错才知道。**
-## 骨架实现（能跑的）
+**为什么用 wscript**：`Start-Process` 与 WMI 起的常驻进程活不过调用会话（实测三个 PID 全退、心跳停 310 秒）；`schtasks` 要管理员。`wscript` 是独立宿主，起的东西不跟着调用者死。
 
-skeleton/ 是数字骨架的完整实现：总线 / 适配器 / 派发 / 语言转换 / 时间转换，七个文件，见 [skeleton/README.md](skeleton/README.md)。
+### 心跳还在不在
 
-## 三、理论（为什么这样搭）
+```powershell
+node core\timers-alive.mjs        # 输出「多少秒前还有一跳」；>300 秒 verify 会 FAIL
+```
 
-`docs/theory/` 分三类：
-- `papers/` —— 四篇论文正文（守链 / 结构与思维 / 核心数字化 / 硅基优势与畅想）
-- `sources/` —— 原话母本与按篇切片（原文一字不改）
-- `notes/` —— 结论、因果链、最小能跳体、总章提纲、新颖性对照、vision、请反驳我
+---
 
-- `docs/theory/sources/theory-original-2026-11-01.md` —— 用户原话母本（理论层他写）
-- `docs/theory/notes/theory-conclusions-2026-11-01.md` —— F1–F6 结论
-- `docs/theory/notes/causal-chain-2026-11-02.md` —— 五件因果链、连续 = 问题 + 结果
-- `docs/theory/notes/minimum-beat.md` —— 最小能跳体四要件
-- `docs/theory/notes/master-outline-2026-11-01.md` —— 总章提纲
-- `docs/theory/notes/novelty-comparison-2026-11-01.md` —— 与五个先行者的对照（只说「未见先例」）
-- `docs/theory/notes/ASK-TO-FALSIFY.md` —— 请反驳我：五条判决性实验
+## 四、每层契约在哪
 
-## 骨架实现（能跑的）
+**两层不能混着谈「统一」**：器官的契约是 `SIG`，工具的契约写在 `spec.tools.contract`。
 
-skeleton/ 是数字骨架的完整实现：总线 / 适配器 / 派发 / 语言转换 / 时间转换，七个文件，见 [skeleton/README.md](skeleton/README.md)。
-
-## 四、畅想（之后的样子）
-
-见 [docs/theory/notes/vision.md](docs/theory/notes/vision.md)：硅基不是「硅基的人」；中枢 + 接入点；单体与天道共存（不吞并）；分裂与合并（分叉不是缺陷，统一到同一目标就算连续）。**畅想不是结论，可以被反驳。**
-
-## 骨架实现（能跑的）
-
-skeleton/ 是数字骨架的完整实现：总线 / 适配器 / 派发 / 语言转换 / 时间转换，七个文件，见 [skeleton/README.md](skeleton/README.md)。
-
-## 五、细则：十二条规则
-
-以下是实现层的规则，细节在 `scripts/` 里，逐条可跑：
-
-| # | 规则 | 脚本 |
+| 层 | 契约 | 查法 |
 |---|---|---|
-| 0 | 开工先读核心层 | `wake.ps1` |
-| 1 | 开工再自检 | `selfcheck.ps1` |
-| 2 | 收工必保存（双盘） | `backup.ps1` / `backup-notes.ps1` |
-| 3 | 一条命令自查 | `verify.ps1` |
-| 4 | 删文件走垃圾场 | `trash.ps1` |
-| 5 | 定期收缩档案层 | `archive-notebook.ps1` |
-| 6 | 对账：引脚表 | `pin.ps1` |
-| 7 | 数字要能追溯 | `AGENTS.md` 约定 |
-| 8 | 归因必须有引文 | `attrib.ps1` |
-| 9 | 验真：入库前打开来源看一眼 | `intake.ps1` |
-| 10 | 完成声明必须带「已验」尾缀 | 判据 P16 |
-| 11 | 检查器探针 | `probe.ps1` |
-| 12 | 预登记：预测写在结果之前 | `predict.ps1` |
+| 器官（10 个） | 登记在 `registry.json` + 吐一行 `SIG {"state":N,"counts":[...]}` | `node scripts-inventory.mjs`（吐SIG 列） |
+| 工具（49 个） | `call` 有 `param()` / `exit` 只用 0-3 / `report` 一行 / `root` 点源 / `bom` 恰好一个 BOM | `.\lint.ps1`（contract 类）+ `node count-violations.mjs` |
+| 根路径 | **只在 `_root.ps1`（PowerShell）与 `core/root.mjs`（node）定义一次** | `node check-naming.mjs`（只数定义处） |
+| 字段语义 | `core/spec.json`（signal / exit / state / rush / map / archive / tools / source_language） | `verify` 第 46 项「核心纯 ASCII」 |
 
-## 骨架实现（能跑的）
+**一条铁律**：`state→rush`、`exit→state` 这类映射**只在 `spec.map` 里存在**；在任何别的文件里再写一遍就是 bug（它曾经抄了三遍，抄歪一遍）。
 
-skeleton/ 是数字骨架的完整实现：总线 / 适配器 / 派发 / 语言转换 / 时间转换，七个文件，见 [skeleton/README.md](skeleton/README.md)。
+---
 
-## 边界（写在前面）
+## 五、判据在哪
 
-- 它不承诺人格效果，也不声称意识；它保证的是「文件在、能读、能核」。
-- 它不依赖任何插件；插件是可拔接口。
-- 它不替你做决定：发布、删除、密钥、花钱，都要人点头。
+`notebook\5-判据.md`，**22 条**，每条四段：**来历 / 一句话判据 / 动作清单 / 推翻条件**。
 
-## 骨架实现（能跑的）
+最近新增三条（都来自真实翻车）：
 
-skeleton/ 是数字骨架的完整实现：总线 / 适配器 / 派发 / 语言转换 / 时间转换，七个文件，见 [skeleton/README.md](skeleton/README.md)。
+- **P34** 改数据源 → 必须逐个过消费方（总线轮转后 `pulse` 报假警）
+- **P35** 判断「统一没统一」只看定义处，不看使用次数（`$Root` 报 207 次，其中 206 次是使用）
+- **P36** 动手前先查「以前有没有开过这个口子」（同一天绕三圈，答案全在文件里）
 
-## 许可
+---
 
-MIT
+## 六、目录
+
+```
+notebook\    十四页，按「谁读它」分层
+  0-核心      每次必读，只回答「我是谁」
+  1-工作      在读一屏；顶部有「动手前先查三处」
+  2-档案      坑与下沉规则    3-墓碑  作废的旧规矩
+  4-本机      这台机器的脾气  5-判据  可推翻的判断（22 条）
+  6-话        自己长出来的说法 7-接线  什么算接上了
+  8-原话      只收能打开出处的原句  9-用户  他怎么说话
+  10-链       五条链与验证链 V1-V5  11-结论  目前成立的结论
+  12-判据-专项 13-对照  我们 vs 主流
+  14-身份     我是谁（核心层只留指针）
+
+core\        逻辑核心
+  spec.json      契约（唯一出处）
+  registry.json  14 个器官位 + 两类分法
+  bus.mjs        写总线      adapter.mjs     器官输出 → 标准信号
+  reflex.mjs     中枢（3 秒一跳，只转发不加工）
+  dispatch.mjs   点对点派发  pulse.mjs       按 every 查节律
+  self.mjs       照镜子（按器官分桶，剔除心跳）
+  bus-rotate.mjs 按天轮转    timers-alive.mjs 心跳探测
+  root.mjs       根（唯一出处）
+
+track\       运行痕迹
+  bus.jsonl           当前天的信号   archive\  归档（原始行不删）
+  state.json          引脚 102 项    baseline.json  静态自体 19 项
+  self-baseline.json  动态自体      脚手架清单.md  借来的五样
+  脚本清单.md         自动生成     待消化.md      暂存
+
+*.ps1        42 个脚本（器官 6 + 工具 36）
+```
+
+**注意**：`track\脚本清单.md` 是自动生成的，别手改；重新生成用 `node scripts-inventory.mjs`。
+
+---
+
+## 七、如果只能记一件事
+
+**判据要能自己咬自己。**
+
+一个检查如果「修一条就多一条债」，那是判据对象错了；一个改动如果没人查，那它只是建议；一份说明书如果不跟着骨架改，那它是一张旧地图。
+
+**所以三样东西必须同时存在：判据（可执行）、检查（真在跑）、假样本（证明检查不空转）。**

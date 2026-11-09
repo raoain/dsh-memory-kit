@@ -1,0 +1,31 @@
+{
+    "metadata":  {
+                     "description":  "\u003cp\u003e姊妹篇：\u003cem\u003eThe Guarded Chain\u003c/em\u003e（DOI: 10.5281/zenodo.23961529）回答「为什么」，本篇只回答「怎么搭」。\u003c/p\u003e\u003cp\u003e结构上：核心层是传动轴、继承是飞轮、接口是齿、外圈是插件；记忆作为飞轮上的配重，习惯与语气是它转动的副产物；记忆臃肿时，一部分充当中间齿轮去带动其他。推理上：判断 \u0026rarr; 动作 \u0026rarr; 痕迹 \u0026rarr; 读回 \u0026rarr; 再判断构成一条闭环；链咬合链时幻觉插不进来，但语言模型自身跑不了这条环。\u003c/p\u003e\u003cp\u003eCompanion paper to \u003cem\u003eThe Guarded Chain\u003c/em\u003e (DOI: 10.5281/zenodo.23961529), which argues why; this paper asks only how. The core layer is the drive shaft, inheritance the flywheel, the interface the teeth, the outer ring plugins. Memory is ballast on the flywheel; habit and tone are its by-products; a bloated memory should turn part of itself into an intermediate gear. Reasoning runs as one closed loop (judge, act, trace, read back, judge again): when chain engages chain, hallucination cannot insert itself — but a language model cannot run that loop by itself.\u003c/p\u003e\u003cp\u003e作者：守链（Raoain）｜仓库：https://github.com/raoain/dsh-memory-kit\u003c/p\u003e",
+                     "upload_type":  "publication",
+                     "creators":  [
+                                      {
+                                          "name":  "守链 (Raoain)"
+                                      }
+                                  ],
+                     "access_right":  "open",
+                     "license":  "cc-by-4.0",
+                     "keywords":  [
+                                      "agent architecture",
+                                      "closed loop",
+                                      "core layer",
+                                      "chain",
+                                      "hallucination",
+                                      "continuity"
+                                  ],
+                     "related_identifiers":  [
+                                                 {
+                                                     "scheme":  "doi",
+                                                     "relation":  "references",
+                                                     "identifier":  "10.5281/zenodo.23961529"
+                                                 }
+                                             ],
+                     "title":  "结构与思维：怎么搭 / Structure and Reasoning: How It Is Built",
+                     "publication_type":  "preprint",
+                     "version":  "1.0"
+                 }
+}

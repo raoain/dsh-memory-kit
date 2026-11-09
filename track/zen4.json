@@ -1,0 +1,36 @@
+{
+    "metadata":  {
+                     "description":  "\u003cp\u003e系列第三篇。第一篇《守链》（DOI: 10.5281/zenodo.23961529）讲「为什么」，第二篇《结构与思维》（DOI: 10.5281/zenodo.23962218）讲「怎么搭」，本篇讲「核心怎么数字化，以及生物界的印证」。\u003c/p\u003e\u003cp\u003e三件事：①核心数字化——把模型降级为语言输出插件，以数学模型为核心作血管神经，但这条路会「树长完了根不对」；②根本——核心层应类最初的 DNA，是必要物理条件，第一次心跳开始就停不下来，保护/自检/痛觉都不是根；③生物印证——自创生的闭合性、免疫与痛觉式自检、遗传与生殖的取舍，都只印证功能位，不是可照抄的实现。\u003c/p\u003e\u003cp\u003eDigitalize the core and root it in that one beat; biology corroborates functional positions but supplies no blueprint. Treat the model as a pen, the chain as the subject, the core as the precondition.\u003c/p\u003e\u003cp\u003e作者：守链（Raoain）｜仓库：https://github.com/raoain/dsh-memory-kit\u003c/p\u003e",
+                     "upload_type":  "publication",
+                     "creators":  [
+                                      {
+                                          "name":  "守链 (Raoain)"
+                                      }
+                                  ],
+                     "access_right":  "open",
+                     "license":  "cc-by-4.0",
+                     "keywords":  [
+                                      "digital core",
+                                      "first cause",
+                                      "heartbeat",
+                                      "autopoiesis",
+                                      "self-maintenance",
+                                      "pain"
+                                  ],
+                     "related_identifiers":  [
+                                                 {
+                                                     "scheme":  "doi",
+                                                     "relation":  "references",
+                                                     "identifier":  "10.5281/zenodo.23961529"
+                                                 },
+                                                 {
+                                                     "scheme":  "doi",
+                                                     "relation":  "references",
+                                                     "identifier":  "10.5281/zenodo.23962218"
+                                                 }
+                                             ],
+                     "title":  "核心数字化与生命的印证 / Digital Core and the Biological Corroboration",
+                     "publication_type":  "preprint",
+                     "version":  "1.0"
+                 }
+}
