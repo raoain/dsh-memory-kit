@@ -109,7 +109,55 @@
       "kind": 1,
       "path": "core/drift.mjs",
       "every": 0,
-      "note": "comparison loop (brainstem): measures gap between bus and spec.expect, reports the number, does not act"
+      "note": "comparison loop (brainstem): measures gap between bus and spec.expect, reports the number, does not act",
+      "name": "general-center",
+      "role": "connection: measure"
+    },
+    "16": {
+      "id": "align",
+      "kind": 4,
+      "path": "core/align.mjs",
+      "every": 1440,
+      "note": "immune-layer action: records the drift list, then moves the pin baseline; refuses to align when the pin count would shrink"
+    },
+    "17": {
+      "id": "immunity",
+      "kind": 4,
+      "path": "core/immunity.mjs",
+      "every": 1440,
+      "note": "immunity register: per incident, proves the enforcement still exists AND still passes; a rule without a machine check is not immunity"
+    },
+    "18": {
+      "id": "consolidate",
+      "kind": 4,
+      "path": "core/consolidate.mjs",
+      "every": 30,
+      "note": "primary center for the stream: judges (shape stats), compresses (events only), discharges lines older than 45 min; never decides death",
+      "name": "aggregator",
+      "role": "connection: aggregate + upload"
+    },
+    "19": {
+      "id": "damage",
+      "kind": 1,
+      "path": "core/damage.mjs",
+      "every": 0,
+      "note": "cheap pre-action integrity check (~100ms): parses core data, checks registered organ files, requires a recent non-red verify verdict; never repairs"
+    },
+    "20": {
+      "id": "brain",
+      "kind": 1,
+      "path": "core/brain.mjs",
+      "every": 0,
+      "note": "the layer above the center: reads center.verdict, ranks issues, separates mechanical from needs-understanding; never acts",
+      "name": "preliminary-judge",
+      "role": "thinking: preliminary judgment"
+    },
+    "21": {
+      "id": "mind",
+      "kind": 1,
+      "path": "core/mind.mjs",
+      "every": 0,
+      "note": "thinking skeleton: L1 conclude, L2 decide or cannot-decide, L3 recheck; writes track/mind/"
     }
   },
   "subs": {
@@ -137,7 +185,12 @@
     "11": [],
     "12": [],
     "13": [],
-    "14": []
+    "14": [],
+    "16": [],
+    "17": [],
+    "18": [],
+    "19": [],
+    "20": []
   },
   "modules": {
     "note": "Reserved module slots (2026-11-08). Each module has its own local center; organs attach under it. path null = not built yet, only the position and the interface exist.",
@@ -188,7 +241,13 @@
         "8",
         "9",
         "14",
-        "15"
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21"
       ],
       "sub": {
         "center": [
@@ -205,9 +264,14 @@
           "6",
           "8",
           "9",
-          "14"
+          "14",
+          "15",
+          "16",
+          "17",
+          "18"
         ]
-      }
+      },
+      "area": "internal"
     },
     "body": {
       "members": [
@@ -229,7 +293,10 @@
         "memHi": [
           "13"
         ]
-      }
-    }
-  }
+      },
+      "area": "limb"
+    },
+    "area_note": "two top-level areas: internal (organs that keep the body running) and limb (parts that act on or read the outside world; all slots are still empty)"
+  },
+  "roles_note": "brainstem = cells 15 + 18 + 20 (three organs, powers separated, ONE overall function): 15 connects and measures; 18 aggregates, applies thresholds and uploads; 20 takes the raw rows and judges once more on its own, then ranks. This is the EARLIEST brain: it only maintains and reports, nothing more. The total brain sits above it and is not built yet, which is why this layer can only be called the brainstem. A biological brainstem fuses these into one act; silicon splits them into three steps ON PURPOSE -- split so each step is easy to change or replace, and the completion condition then has to be written down explicitly. Fusion is possible and left to later generations. Separation of powers, not separation of systems. Everything here is mechanical: measure, threshold, dispatch what has a known remedy, upload what does not. Nothing in this layer tries to understand anything."
 }

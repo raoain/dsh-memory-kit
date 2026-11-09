@@ -14,8 +14,9 @@
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { spawn } from 'node:child_process'
 import { emit } from './bus.mjs'
+import { matches } from './match.mjs'
+import { requestSpawn } from './arbiter.mjs'
 
 // root comes from core/root.mjs -- do not hardcode the path here
 import { ROOT } from './root.mjs'
@@ -32,22 +33,6 @@ const reg = JSON.parse(readFileSync(join(ROOT, 'core', 'registry.json'), 'utf8')
 const rulesFile = JSON.parse(readFileSync(join(ROOT, 'core', 'rules.json'), 'utf8'))
 const cells = reg.cells || {}
 const rules = rulesFile.rules || []
-
-function matches(when, sig) {
-  for (const [k, v] of Object.entries(when)) {
-    // 2026-11-08: rules use STATE NAMES (pass/warn/fail/unknown), not numbers. The numbers
-    // live in spec.state only -- if rules.json carried its own copy, renumbering in spec
-    // would silently disable a rule (same class as the thrice-copied state->rush).
-    let want = v
-    if (k === 'state' && typeof v === 'string') {
-      const found = Object.keys(SPEC.state).find((n) => SPEC.state[n] === v)
-      if (found === undefined) return false // unknown name: never match, never guess
-      want = found
-    }
-    if (Number(sig[k]) !== Number(want)) return false
-  }
-  return true
-}
 
 const dry = process.argv.includes('--dry')
 const all = process.argv.includes('--all')
@@ -69,7 +54,7 @@ function runOnce() {
     if (String(sig.src) === SELF) continue
 
     const hits = rules
-      .filter((r) => matches(r.when, sig))
+      .filter((r) => matches(SPEC, r.when, sig))
       .map((r) => ({ rule: r.id, spawn: Number(r.then.spawn || 0), rush: Number(r.rush ?? sig.rush ?? 0) }))
       .sort((a, b) => b.rush - a.rush || a.rule - b.rule)
 
@@ -81,14 +66,10 @@ function runOnce() {
       cd[String(h.rule)] = nowMs
       fired.push(`${sig.src}->${h.spawn}(${cell.id}) rush=${h.rush}`)
       if (dry) continue
-      try {
-        const child = spawn('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', join(ROOT, cell.path)], {
-          env: { ...process.env, TRIGGER_FROM: String(sig.src), TRIGGER_STATE: String(sig.state), TRIGGER_RULE: String(h.rule) },
-          stdio: 'ignore',
-          detached: true,
-        })
-        child.unref()
-      } catch { fired.push('spawn-failed:' + cell.id) }
+      // 2026-11-09 用户「统合下传信号」：下发统一走 arbiter，不再各自 spawn——
+      // 两个下发者（reflex 与 brain）对同一个器官不能各叫各的，闸在 arbiter 里。
+      const verdict = requestSpawn({ from: sig.src, id: cell.id, path: cell.path, reason: `rule${h.rule}`, rush: h.rush })
+      if (!verdict.ok) fired.push(`held(${cell.id}:${verdict.why})`)
     }
   }
 

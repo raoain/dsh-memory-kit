@@ -37,9 +37,13 @@
     ],
     "optional": [
       "rush",
-      "counts"
+      "counts",
+      "topic",
+      "cell",
+      "channel"
     ],
-    "note": "numbers wherever a value can be compared or ordered; strings only for humans. rush defaults to 0."
+    "note": "numbers wherever a value can be compared or ordered; strings only for humans. rush defaults to 0.",
+    "topic_note": "topic names WHAT KIND of event this is (e.g. cadence.broken); it is not an address. Who reacts is decided by the receiver table (core/rules.json), the same way a hormone is only read by cells that carry the receptor. cell optionally names which organ the event is about."
   },
   "map": {
     "exit_to_state": {
@@ -85,9 +89,19 @@
       "call": "a param() block declares every input; no positional magic, no reading globals it did not declare",
       "exit": "exit codes use the same table as above: 0 ok, 1 ok-with-warn, 2 fail, 3 cannot-judge",
       "report": "one line of plain text stating what it did and where the evidence is; no SIG line required",
-      "root": "dot-source _root.ps1 (PowerShell) or import core/root.mjs (node); never hardcode the path"
+      "root": "dot-source _root.ps1 (PowerShell) or import core/root.mjs (node); never hardcode the path",
+      "bom": "a .ps1 starts with EXACTLY one UTF-8 BOM: zero makes PS 5.1 read it as GBK, more than one leaves param() unbound while the script keeps running and looks healthy"
     },
-    "why": "Without a contract the tool layer drifts: each script invents its own exit codes and argument style, so nothing can be checked in the same way as organs. The contract differs from SIG, but it must exist (2026-11-08)."
+    "why": "Without a contract the tool layer drifts: each script invents its own exit codes and argument style, so nothing can be checked in the same way as organs. The contract differs from SIG, but it must exist (2026-11-08).",
+    "lint": {
+      "note": "script lint rules; implemented by lint.ps1, verdict surfaced by immunity (ps1-lint) so there is one bark point",
+      "rules": {
+        "var-collision": "the same logical variable must not be spelled in several different cases in one script",
+        "no-ternary": "PowerShell 5.1 has no ternary operator; use if/else",
+        "no-dotnet-relative": "[IO.File] and friends resolve against the process CWD, not Set-Location; use absolute paths"
+      },
+      "implemented_by": "lint.ps1"
+    }
   },
   "expect": {
     "note": "The ONLY place expected values live. Comparison code reads them here; a threshold hardcoded anywhere else is a bug (same rule as map).",
@@ -106,7 +120,13 @@
       "note": "how much windowed violation counts as real. Prior art judges a window ratio (SLO burn rate) not an instant; a single restart must not raise an alarm.",
       "state1_bp": 1000,
       "state2_bp": 5000,
-      "why": "three percent violation over a window is noise from one restart; ten percent is a pattern; fifty percent is broken. Value on the bus is basis points (ratio * 10000)."
+      "why": "three percent violation over a window is noise from one restart; ten percent is a pattern; fifty percent is broken. Value on the bus is basis points (ratio * 10000).",
+      "repeat_rounds": 5,
+      "repeat_note": "the same expectation breached for this many consecutive rounds is no longer an incident but a changed normal; the brainstem reports it as cadence.repeat, it does not dispatch anyone",
+      "dedup_window_sec": 600,
+      "dedup_note": "the same condition is held (not re-reported) until this many seconds pass, the state changes, or it is the first sighting",
+      "tier_urgent_after": 20,
+      "tier_note": "normal below tier_urgent_after repeats (17 was normal); urgent from tier_urgent_after (20+); lethal is not a count -- it means a whole region is down or the failure spans regions"
     }
   },
   "source_language": {
@@ -145,5 +165,251 @@
     "why": "User definition (2026-11-08): 'if you write code, you write it by this standard; attaching a translation layer alongside is fine.' Chinese inside the vessel means the translation was inlined, not attached.",
     "boundary_note": "The first version said 'no non-ASCII anywhere' and called the human-facing parts 'exempt'. Both were wrong: it would have demanded translating several thousand comment lines, and 'exempt' frames the translation layer as a loophole instead of a layer.",
     "current_gap_2026_11_08": "No known violations in the vessel. core0.mjs (which parsed Chinese protocol marks) was archived to trash/2026-11/. human.mjs now reads its wording from locales.zh."
+  },
+  "channels": {
+    "note": "three tiers by what the stream is for, not by frequency alone",
+    "fast": {
+      "id": "fast",
+      "role": "vision-like",
+      "example": "perceptual organs (vision/hearing) once a body exists",
+      "repeats": "almost nothing repeats; every sample is new and useful",
+      "route": "straight to the center, then to the brain; the brainstem cannot judge content",
+      "status": "reserved",
+      "keep": "raw retained while useful (retention undecided)"
+    },
+    "steady": {
+      "id": "steady",
+      "role": "constant supply",
+      "example": "heartbeat(reflex) and power/energy",
+      "repeats": "constant: the heartbeat repeats almost identically, the energy level changes slowly",
+      "route": "own tier; the heartbeat does not interoperate with anything else",
+      "judge": "liveness only for the heart (count, max gap, where it broke); energy is judged against its own setpoint",
+      "keep": "shape only for the heartbeat; raw may be discharged"
+    },
+    "slow": {
+      "id": "slow",
+      "role": "daily or event driven",
+      "example": "backup/align/immunity",
+      "repeats": "rare",
+      "route": "brainstem measures, center judges",
+      "judge": "cadence against registry.every; absence today is not a fault",
+      "keep": "daily roster marks presence; raw not needed"
+    },
+    "routing_rule": {
+      "why": "biology has no choice: no bandwidth, so it must compress into a hub and send a summary. Silicon has bandwidth, and the brainstem cannot process change anyway.",
+      "rule": "constant stream is absorbed by the brainstem (compressed, mostly discharged); changes and problems go straight to the brain, which is the only layer that can handle them; the brainstem is not a detour they must pass",
+      "bandwidth": "no cap: real-time data may be carried in full; do not compress just because biology had to",
+      "not_a_rule": "passing through a center is not a virtue by itself",
+      "purpose": "the brainstem exists for ONE reason: the internal organs are too constant, their stream does not need to be reported up. It is not a hub everything must pass through.",
+      "default": "point to point when both ends can talk; copying the biological detour is not architecture, it is habit."
+    }
+  },
+  "brain": {
+    "note": "the decision table lives in the spec, not in brain.mjs: a rule change must not require a code change (same reason OPA keeps policy out of the engine)",
+    "mechanical": {
+      "backup": "rerun-backup",
+      "align": "realign-pins",
+      "immunity": "rerun-immunity",
+      "consolidate": "rerun-consolidate"
+    },
+    "needs_understanding": [
+      "self",
+      "pulse",
+      "drift",
+      "damage"
+    ]
+  },
+  "records": {
+    "note": "data records read by code must have declared types here; a field whose type varies is a bug, not a style. Write a draft, then run core/immunity.mjs and fix from its report.",
+    "memories_jsonl": {
+      "file": "memories.jsonl",
+      "one_line_per": "memory entry",
+      "fields": {
+        "id": "string",
+        "layer": "string",
+        "project": "string",
+        "subcategory": "string",
+        "status": "string",
+        "importance": "number",
+        "content": "string",
+        "keywords": "string holding a JSON array (parse before use)",
+        "updated_at": "number (epoch ms)"
+      }
+    },
+    "bus_jsonl": {
+      "file": "track/bus.jsonl",
+      "one_line_per": "signal",
+      "fields": {
+        "ts": "number (epoch ms)",
+        "at": "string",
+        "src": "string",
+        "kind": "number",
+        "state": "number",
+        "value": "number",
+        "evid": "string",
+        "rush": "number"
+      }
+    },
+    "events_jsonl": {
+      "file": "track/events.jsonl",
+      "one_line_per": "event",
+      "fields": {
+        "at": "string",
+        "src": "string",
+        "kind": "number",
+        "state": "number",
+        "value": "number",
+        "evid": "string",
+        "why": "string"
+      }
+    },
+    "brain_jsonl": {
+      "file": "track/brain.jsonl",
+      "one_line_per": "plan",
+      "fields": {
+        "at": "string",
+        "verdict_at": "string|null",
+        "heart": "object|null",
+        "items": "array",
+        "counts": "object",
+        "state": "number",
+        "evid": "string"
+      }
+    },
+    "dispatch_jsonl": {
+      "file": "track/dispatch.jsonl",
+      "one_line_per": "dispatch decision",
+      "fields": {
+        "at": "string",
+        "from": "string",
+        "cell": "string",
+        "reason": "string",
+        "rush": "number",
+        "tier": "number",
+        "ok": "boolean",
+        "why": "string"
+      }
+    },
+    "center_json": {
+      "file": "track/center.json",
+      "one_object": true,
+      "fields": {
+        "beats": "number",
+        "bySrc": "object",
+        "byState": "object",
+        "transitions": "number",
+        "maxGapMs": "number",
+        "gapAt": "string|null",
+        "lastAt": "string",
+        "events": "number",
+        "discharged": "number",
+        "lastSeen": "object",
+        "rebuilt": "string",
+        "bySrcState": "object",
+        "roster": "object",
+        "overdue": "array",
+        "never": "array",
+        "verdict": "object",
+        "chain": "object",
+        "vital": "object"
+      }
+    },
+    "nucleus_json": {
+      "file": "track/mind/nucleus.json",
+      "one_object": true,
+      "fields": {
+        "at": "string",
+        "prev_at": "string|null",
+        "cur": "object",
+        "delta": "object|null"
+      }
+    }
+  },
+  "pages": {
+    "note": "rules about the notebook pages; the page is addressed by its numeric prefix so this file stays pure ASCII",
+    "core": {
+      "dir": "notebook",
+      "prefix": "0-",
+      "max_bytes": 2048,
+      "min_sections": 3
+    },
+    "tombstone": {
+      "dir": "notebook",
+      "prefix": "3-",
+      "require_reason": true,
+      "require_now_rule": true
+    },
+    "timeline": {
+      "format": "YYYY-MM-DD HH:mm",
+      "non_decreasing": true,
+      "note": "patterns contain CJK prefixes, so they live in locales; spec only names the key",
+      "files": [
+        {
+          "name": "archive",
+          "dir": "notebook",
+          "prefix": "2-",
+          "pattern_key": "imm.timeline.archive"
+        },
+        {
+          "name": "worklog",
+          "dir": "notebook",
+          "prefix": "1-",
+          "pattern_key": "imm.timeline.worklog"
+        }
+      ]
+    }
+  },
+  "reminders": {
+    "note": "reminder-type rules: no failure mode of their own, they just tell a person something looks stale",
+    "wake_mark": {
+      "file": "track/wake-last.txt",
+      "format": "YYYY-MM-DD HH:mm:ss",
+      "max_age_h": 24,
+      "worn_after_h": 12
+    },
+    "snapshot": {
+      "dir": "track/own",
+      "ext": ".json",
+      "max_age_h": 30
+    },
+    "trash": {
+      "dir": "trash",
+      "max_size_mb": 200,
+      "note": "deleted files pile up here first; empty only when the pile gets big"
+    }
+  },
+  "rules": {
+    "note": "two core-layer rules that used to live only as prose; each now has a runnable check so the core page can be trimmed later",
+    "evidence": {
+      "page": {
+        "dir": "notebook",
+        "prefix": "1-"
+      },
+      "claim_key": "imm.rules.claim_words",
+      "evidence_key": "imm.rules.evidence_marker"
+    },
+    "escalation": {
+      "streak_file": "track/warn-streak.json",
+      "streak": 3
+    }
+  },
+  "liveness": {
+    "note": "A-class: state that changes by itself every day. Rules here must be declared; tools stay in verify.",
+    "roots": {
+      "checker": "check-naming.mjs",
+      "max_defs": 1
+    },
+    "timers": {
+      "files": [
+        "start-timers.vbs",
+        "core/timers-alive.mjs"
+      ]
+    },
+    "self_set": {
+      "file": "track/baseline.json",
+      "max_age_days": 8,
+      "max_drift": 5,
+      "snapshot_cmd": "baseline.ps1"
+    }
   }
 }

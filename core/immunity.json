@@ -1,0 +1,493 @@
+{
+  "note": "Immunity register: one row per failure we have actually hit. A rule only counts as immune when a machine check enforces it here. Docs are not immunity.",
+  "shape": {
+    "id": "stable key",
+    "failure": "the incident, in one line",
+    "enforced_by": "file + pattern proving the enforcement still exists",
+    "live_check": "named check implemented in core/immunity.mjs",
+    "docs": "where it was written down (informative only, never counts as enforcement)",
+    "tier": "reflex = this layer self-checks it now; escalate = only a weak proxy here, reported up to the higher center",
+    "owner": "who the individual belongs to: entries from someone else keep their own owner id, so the table shows whose rule it is"
+  },
+  "entries": [
+    {
+      "id": "ps1-bom",
+      "failure": "ps1 with 0 or more than 1 BOM: GBK garbage, or param() silently unbound",
+      "enforced_by": {
+        "file": "lint.ps1",
+        "pattern": "@contract bom"
+      },
+      "live_check": "ps1-bom",
+      "docs": "AGENTS.md",
+      "tier": "reflex",
+      "owner": "coo-day1",
+      "covers": [
+        "tools"
+      ]
+    },
+    {
+      "id": "ps1-param",
+      "failure": "tool script without param() block: inputs come from positionals or globals",
+      "enforced_by": {
+        "file": "lint.ps1",
+        "pattern": "@contract call"
+      },
+      "live_check": "ps1-param",
+      "docs": "docs",
+      "tier": "reflex",
+      "owner": "coo-day1",
+      "covers": [
+        "tools"
+      ]
+    },
+    {
+      "id": "ps1-exit",
+      "failure": "exit code outside 0-3: caller cannot tell ok from fail",
+      "enforced_by": {
+        "file": "lint.ps1",
+        "pattern": "@contract exit"
+      },
+      "live_check": "ps1-exit",
+      "docs": "docs",
+      "tier": "reflex",
+      "owner": "coo-day1",
+      "covers": [
+        "exit",
+        "tools"
+      ]
+    },
+    {
+      "id": "root-hardcode",
+      "failure": "project root copy-pasted into a script: one move breaks it",
+      "enforced_by": {
+        "file": "lint.ps1",
+        "pattern": "@contract root"
+      },
+      "live_check": "root-hardcode",
+      "docs": "docs",
+      "tier": "reflex",
+      "owner": "coo-day1",
+      "covers": [
+        "tools",
+        "adapter_protocol",
+        "adapter_protocol_note"
+      ]
+    },
+    {
+      "id": "mjs-header",
+      "failure": "script whose purpose is invisible: nobody knows what it does",
+      "enforced_by": {
+        "file": "lint.ps1",
+        "pattern": "@contract report"
+      },
+      "live_check": "mjs-header",
+      "docs": "docs",
+      "tier": "escalate",
+      "owner": "coo-day1",
+      "covers": [
+        "source_language"
+      ]
+    },
+    {
+      "id": "contract-spec",
+      "failure": "the ruler itself shrinks: a contract item quietly deleted",
+      "enforced_by": {
+        "file": "core/spec.json",
+        "pattern": "bom"
+      },
+      "live_check": "contract-spec",
+      "docs": "core/spec.json",
+      "tier": "reflex",
+      "owner": "coo-day1",
+      "covers": [
+        "version",
+        "signal",
+        "tools",
+        "state",
+        "kind",
+        "rush",
+        "map",
+        "expect"
+      ]
+    },
+    {
+      "id": "organ-path",
+      "failure": "registry lists an organ whose file no longer exists",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "organ-path"
+      },
+      "live_check": "organ-path",
+      "docs": "docs",
+      "tier": "reflex",
+      "owner": "coo-day1",
+      "covers": [
+        "id"
+      ]
+    },
+    {
+      "id": "probe-fresh",
+      "failure": "the checkers themselves stopped running and nobody noticed",
+      "enforced_by": {
+        "file": "verify.ps1",
+        "pattern": ".probe-last.json"
+      },
+      "live_check": "probe-fresh",
+      "docs": "docs",
+      "tier": "reflex",
+      "owner": "coo-day1",
+      "covers": [
+        "probe"
+      ]
+    },
+    {
+      "id": "bus-alive",
+      "failure": "heartbeat stopped; the whole loop is dead and silent",
+      "enforced_by": {
+        "file": "verify.ps1",
+        "pattern": "hbLimitSec"
+      },
+      "live_check": "bus-alive",
+      "docs": "docs",
+      "tier": "reflex",
+      "owner": "coo-day1",
+      "covers": [
+        "time",
+        "archive"
+      ]
+    },
+    {
+      "id": "pin-drift",
+      "failure": "a pinned value moved without anyone deciding it should",
+      "enforced_by": {
+        "file": "pin.ps1",
+        "pattern": "DRIFT"
+      },
+      "live_check": "pin-readable",
+      "docs": "docs",
+      "tier": "reflex",
+      "owner": "coo-day1",
+      "covers": [
+        "id"
+      ]
+    },
+    {
+      "id": "align-guard",
+      "failure": "daily realignment swallows a loss instead of reporting it",
+      "enforced_by": {
+        "file": "core/align.mjs",
+        "pattern": "REFUSED"
+      },
+      "live_check": "align-guard",
+      "docs": "docs",
+      "tier": "reflex",
+      "owner": "coo-day1",
+      "covers": [
+        "reserved"
+      ]
+    },
+    {
+      "id": "rules-never-fire",
+      "failure": "a reflex rule that can never match any real signal (silent death)",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "rules-coverable"
+      },
+      "live_check": "rules-coverable",
+      "tier": "reflex",
+      "docs": "core/rules.json",
+      "owner": "coo-day1",
+      "covers": [
+        "reserved"
+      ]
+    },
+    {
+      "id": "standards-covered",
+      "failure": "a standard item that exists in spec but has no immunity entry (doc without a watcher)",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "standards-covered"
+      },
+      "live_check": "standards-covered",
+      "tier": "reflex",
+      "docs": "core/spec.json",
+      "owner": "coo-day1",
+      "covers": [
+        "tools"
+      ]
+    },
+    {
+      "id": "ids-unique-per-owner",
+      "owner": "coo-day1",
+      "failure": "two immunity entries with the same id inside one owner (you cannot tell who is in charge)",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "ids-unique-per-owner"
+      },
+      "live_check": "ids-unique-per-owner",
+      "tier": "reflex",
+      "docs": "core/immunity.json",
+      "covers": [
+        "id"
+      ]
+    },
+    {
+      "id": "record-shape",
+      "owner": "coo-day1",
+      "failure": "data records read by code have undeclared field types (keywords was sometimes a string)",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "record-shape"
+      },
+      "live_check": "record-shape",
+      "tier": "reflex",
+      "docs": "spec.records",
+      "covers": [
+        "records",
+        "channels",
+        "brain"
+      ]
+    },
+    {
+      "id": "core-ascii-strings",
+      "owner": "coo-day1",
+      "failure": "core code carried Chinese strings inside string literals (translation layer must hold them)",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "core-ascii-strings"
+      },
+      "live_check": "core-ascii-strings",
+      "tier": "reflex",
+      "docs": "core/locales/zh.json",
+      "covers": [
+        "source_language",
+        "signal"
+      ]
+    },
+    {
+      "id": "spec-sections-covered",
+      "owner": "coo-day1",
+      "failure": "a spec section exists but no immunity check claims it",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "spec-sections-covered"
+      },
+      "live_check": "spec-sections-covered",
+      "tier": "reflex",
+      "docs": "spec top-level sections",
+      "covers": [
+        "all-sections"
+      ]
+    },
+    {
+      "id": "core-data-ascii",
+      "owner": "coo-day1",
+      "failure": "core data files carried non-ASCII bytes",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "core-data-ascii"
+      },
+      "live_check": "core-data-ascii",
+      "tier": "reflex",
+      "docs": "spec.source_language",
+      "covers": [
+        "source_language"
+      ]
+    },
+    {
+      "id": "pins-cover-scripts",
+      "owner": "coo-day1",
+      "failure": "a script exists but has no pin entry",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "pins-cover-scripts"
+      },
+      "live_check": "pins-cover-scripts",
+      "tier": "reflex",
+      "docs": "state.json pins",
+      "covers": [
+        "tools"
+      ]
+    },
+    {
+      "id": "ps1-lint",
+      "owner": "coo-day1",
+      "failure": "scripts violate the declared lint rules",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "ps1-lint"
+      },
+      "live_check": "ps1-lint",
+      "tier": "reflex",
+      "docs": "spec.tools.lint",
+      "covers": [
+        "tools"
+      ]
+    },
+    {
+      "id": "core-page",
+      "owner": "coo-day1",
+      "failure": "the bootstrap page grew past its byte cap or lost sections",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "core-page"
+      },
+      "live_check": "core-page",
+      "tier": "reflex",
+      "docs": "spec.pages.core",
+      "covers": [
+        "pages"
+      ]
+    },
+    {
+      "id": "tombstone",
+      "owner": "coo-day1",
+      "failure": "a retired rule was not marked dead, or marked without a reason",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "tombstone"
+      },
+      "live_check": "tombstone",
+      "tier": "reflex",
+      "docs": "spec.pages.tombstone",
+      "covers": [
+        "pages"
+      ]
+    },
+    {
+      "id": "timeline-order",
+      "owner": "coo-day1",
+      "failure": "log timestamps are malformed or run backwards",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "timeline-order"
+      },
+      "live_check": "timeline-order",
+      "tier": "reflex",
+      "docs": "spec.pages.timeline",
+      "covers": [
+        "pages"
+      ]
+    },
+    {
+      "id": "wake-fresh",
+      "owner": "coo-day1",
+      "failure": "nobody woke up for a long time",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "wake-fresh"
+      },
+      "live_check": "wake-fresh",
+      "tier": "reflex",
+      "docs": "spec.reminders",
+      "covers": [
+        "reminders"
+      ]
+    },
+    {
+      "id": "snapshot-fresh",
+      "owner": "coo-day1",
+      "failure": "no recent snapshot of the own state",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "snapshot-fresh"
+      },
+      "live_check": "snapshot-fresh",
+      "tier": "reflex",
+      "docs": "spec.reminders",
+      "covers": [
+        "reminders"
+      ]
+    },
+    {
+      "id": "claims-evidence",
+      "owner": "coo-day1",
+      "failure": "a completion was claimed without openable evidence (can-query-but-guess)",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "claims-evidence"
+      },
+      "live_check": "claims-evidence",
+      "tier": "reflex",
+      "docs": "spec.rules",
+      "covers": [
+        "rules"
+      ]
+    },
+    {
+      "id": "streak-escalation",
+      "owner": "coo-day1",
+      "failure": "the same root failed past the limit and was never upgraded",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "streak-escalation"
+      },
+      "live_check": "streak-escalation",
+      "tier": "reflex",
+      "docs": "spec.rules",
+      "covers": [
+        "rules"
+      ]
+    },
+    {
+      "id": "trash-size",
+      "owner": "coo-day1",
+      "failure": "deleted files piling up without being emptied",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "trash-size"
+      },
+      "live_check": "trash-size",
+      "tier": "reflex",
+      "docs": "spec.reminders.trash",
+      "covers": [
+        "reminders"
+      ]
+    },
+    {
+      "id": "roots-unique",
+      "owner": "coo-day1",
+      "failure": "root path started being defined in more than one place again",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "roots-unique"
+      },
+      "live_check": "roots-unique",
+      "tier": "reflex",
+      "docs": "spec.liveness",
+      "covers": [
+        "liveness"
+      ]
+    },
+    {
+      "id": "timers-present",
+      "owner": "coo-day1",
+      "failure": "timer launcher or heartbeat probe disappeared",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "timers-present"
+      },
+      "live_check": "timers-present",
+      "tier": "reflex",
+      "docs": "spec.liveness",
+      "covers": [
+        "liveness"
+      ]
+    },
+    {
+      "id": "self-set",
+      "owner": "coo-day1",
+      "failure": "self baseline is missing or stale (only learned what is wrong, not what is normal)",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "self-set"
+      },
+      "live_check": "self-set",
+      "tier": "reflex",
+      "docs": "spec.liveness",
+      "covers": [
+        "liveness"
+      ]
+    }
+  ]
+}

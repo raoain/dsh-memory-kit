@@ -48,6 +48,18 @@ if (existsSync(ARCH)) {
   const files = readdirSync(ARCH).filter((f) => /^bus-\d{8}\.jsonl$/.test(f)).sort().slice(-3)
   for (const f of files) scan(readFileSync(join(ARCH, f), 'utf8'))
 }
+// 2026-11-09 断连修复：活总线 45 分钟后就放电，按天归档只覆盖过去的日子，
+// 于是"今天刚报过但已被放掉"的器官会被判成 never-reported（backup/align 都中过）。
+// 中枢的 center.lastSeen 是单调的、放电不影响，合并它才是"最后一次见到"的真值。
+const CENTER_F = join(ROOT, 'track', 'center.json')
+if (existsSync(CENTER_F)) {
+  try {
+    const c = JSON.parse(readFileSync(CENTER_F, 'utf8'))
+    for (const [src, ts] of Object.entries(c.lastSeen || {})) {
+      if (!lastAt[src] || Number(ts) > lastAt[src]) lastAt[src] = Number(ts)
+    }
+  } catch { /* center unreadable: fall back to the stream */ }
+}
 
 const missing = []
 const hungry = []
