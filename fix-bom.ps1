@@ -11,8 +11,9 @@
 param(
     [switch]$Recurse,
     [switch]$DryRun,
-    [string]$Root = 'F:\Tools\coo-day1'
+    [string]$Root = ''
 )
+if (-not $Root) { $Root = $PSScriptRoot }
 . (Join-Path $PSScriptRoot '_root.ps1')
 
 $ErrorActionPreference = 'Stop'

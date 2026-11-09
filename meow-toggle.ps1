@@ -19,7 +19,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $prof = Join-Path $env:USERPROFILE '.dsh\profiles\desktop'
 $yml  = Join-Path $prof 'cordis.patch.yml'
-$track = 'F:\Tools\coo-day1\track'
+$track = $Track
 if (-not (Test-Path $yml)) { throw "找不到 profile 配置: $yml" }
 New-Item -ItemType Directory -Force -Path $track | Out-Null
 

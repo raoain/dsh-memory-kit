@@ -60,12 +60,12 @@ foreach ($d in 'C', 'D', 'F') {
 }
 
 # 今天的片子
-$today = Get-ChildItem 'F:\Tools\coo-day1\track\own' -Filter '*.json' -ErrorAction SilentlyContinue |
+$today = Get-ChildItem (Join-Path $Track 'own') -Filter '*.json' -ErrorAction SilentlyContinue |
          Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if ($today) { L '最近快照' ($today.Name + '  ' + $today.LastWriteTime.ToString('MM-dd HH:mm')) }
 
 # 最近醒来：wake.ps1 的留痕，用来核对「核心层到底读没读」
-$wakeMark = 'F:\Tools\coo-day1\track\wake-last.txt'
+$wakeMark = (Join-Path $Track 'wake-last.txt')
 if (Test-Path $wakeMark) {
     $w = (Get-Content $wakeMark -Encoding UTF8 -TotalCount 1)
     $stale = ((Get-Date) - (Get-Item $wakeMark).LastWriteTime).TotalHours

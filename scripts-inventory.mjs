@@ -92,10 +92,15 @@ for (const f of uniq.sort()) {
   const hasParam = /param\s*\(/.test(text)
   const exitCodes = [...text.matchAll(/exit\s+(-?\d+)/g)].map((m) => Number(m[1]))
   const badExit = exitCodes.filter((c) => c !== 0 && c !== 1 && c !== 2 && c !== 3)
-  const usesRoot = isPs1 ? /_root\.ps1/.test(text) : /from '\.\/root\.mjs'|core\/root\.mjs/.test(text)
+  // 判据统一（2026-11-09）：契约说的不是「必须 import root.mjs」，而是「不许写死项目根」。
+  // 有些工具（load/logsearch/fix-double-bom）不碰项目根，硬要求 import 会把它们判成违规，
+  // 于是两把尺子给出两个答案。统一成同一条可判规则后，lint 与本表结论一致。
+  const usesRoot = isPs1 ? /_root\.ps1/.test(text) : !/F:[\\/]Tools[\\/]coo-day1/.test(text)
   const violations = []
   if (!isOrgan && !isJson) {
-    if (isPs1 && !hasParam) violations.push('无param块')
+    // _root.ps1 是被点源的根定义，没有输入，不该要求 param（lint 一直是这么豁免的；
+    // 两处不豁免就永远互相打脸，这是"没全统一"的最后一条）
+    if (isPs1 && !hasParam && !isRootDef) violations.push('无param块')
     if (badExit.length) violations.push('退出码越界:' + [...new Set(badExit)].join('/'))
     if (!isRootDef && !usesRoot) violations.push('未用统一根')
   }

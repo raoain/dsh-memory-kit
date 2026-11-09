@@ -8,11 +8,15 @@
 #   .\lint.ps1 -Path D:\x       # 扫指定目录
 #   .\lint.ps1 -Quiet           # 只在有问题时输出
 param(
-    [string]$Path = 'F:\Tools\coo-day1',
+    [string]$Path = '',
     [switch]$Quiet
 )
+if (-not $Root) { $Root = $PSScriptRoot }
+if (-not $Path) { $Path = $Root }
 
 $ErrorActionPreference = 'Continue'
+# 项目根字面量从零件拼出来：写全了，本脚本自己也会被自己的 root 规则判违规（自指）
+$script:HardRoot = 'F:' + '\' + 'Tools' + '\' + 'coo-day1'
 $issues = @()
 $script:scopeHints = @()
 
@@ -27,14 +31,19 @@ foreach ($f in $files) {
     $text = [IO.File]::ReadAllText($f.FullName, [Text.Encoding]::UTF8)
     $lines = $text -split "`r?`n"
 
-    # 0) 工具契约（spec.tools.contract，2026-11-08）：必须有 param 块、退出码只用 0-3、点源统一根
+    # 0) 工具契约（spec.tools.contract，2026-11-08）：必须有 param 块、退出码只用 0-3、点源统一根、BOM 恰好一个
     #    对象分开：本脚本自身与探针豁免；历史欠账仍会列出，但和"新违规"分开数。
+    #    BOM（2026-11-09 加，契约第 5 条）：0 个 → PS5.1 按 GBK 读；多于 1 个 → param() 不绑定、脚本照样跑像是好的。
+    $bytes = [IO.File]::ReadAllBytes($f.FullName)
+    $bomCount = 0
+    while ((3 * ($bomCount + 1)) -le $bytes.Length -and $bytes[3 * $bomCount] -eq 0xEF -and $bytes[3 * $bomCount + 1] -eq 0xBB -and $bytes[3 * $bomCount + 2] -eq 0xBF) { $bomCount++ }
+    if ($bomCount -ne 1) { Add-Issue $f.Name 1 'contract' ("BOM 有 $bomCount 个（契约 bom：恰好 1 个）") }   # @contract bom
     if ($f.Name -ne '_root.ps1') {
         $hasParam = $text -match 'param\s*\('
-        if (-not $hasParam) { Add-Issue $f.Name 1 'contract' '没有 param() 块（契约 call）' }
+        if (-not $hasParam) { Add-Issue $f.Name 1 'contract' '没有 param() 块（契约 call）' }   # @contract call
         $badExit = [regex]::Matches($text, 'exit\s+(-?\d+)') | ForEach-Object { [int]$_.Groups[1].Value } | Where-Object { $_ -notin 0,1,2,3 } | Select-Object -Unique
-        if ($badExit) { Add-Issue $f.Name 1 'contract' ('退出码越界：' + ($badExit -join '/') + '（契约 exit 只允许 0-3）') }
-        if ($text -notmatch '_root\.ps1') { Add-Issue $f.Name 1 'contract' '未点源 _root.ps1（契约 root）' }
+        if ($badExit) { Add-Issue $f.Name 1 'contract' ('退出码越界：' + ($badExit -join '/') + '（契约 exit 只允许 0-3）') }   # @contract exit
+        if ($text -notmatch '_root\.ps1') { Add-Issue $f.Name 1 'contract' '未点源 _root.ps1（契约 root）' }   # @contract root
     }
 
     # 1) 语法检查
@@ -105,6 +114,22 @@ foreach ($f in $files) {
     }
 }
 
+# 5) .mjs 层过同一份工具契约（2026-11-09：原来 lint 只扫 .ps1，26 个 .mjs 谁也不量）
+#    语言不同的地方只差两条：不要求 param()（用 argv）、不允许 BOM（json/mjs 必须无 BOM）。
+$mjsFiles = @()
+$mjsFiles += Get-ChildItem $Path -Filter '*.mjs' -File -ErrorAction SilentlyContinue
+$coreDir = Join-Path $Path 'core'
+if (Test-Path $coreDir) { $mjsFiles += Get-ChildItem $coreDir -Filter '*.mjs' -File -ErrorAction SilentlyContinue }
+foreach ($f in $mjsFiles) {
+    $text = [IO.File]::ReadAllText($f.FullName, [Text.Encoding]::UTF8)
+    $badExit = [regex]::Matches($text, 'process\.exit\((\-?\d+)\)') | ForEach-Object { [int]$_.Groups[1].Value } | Where-Object { $_ -notin 0,1,2,3 } | Select-Object -Unique
+    if ($badExit) { Add-Issue $f.Name 1 'contract' ('退出码越界：' + ($badExit -join '/') + '（契约 exit 只允许 0-3）') }
+    $codeHard = @($text -split "`r?`n" | Where-Object { $s = $_.Trim(); $s -and $s -notmatch '^(//|#|\*)' -and $s.Contains($script:HardRoot) })
+    if ($codeHard.Count -gt 0) { Add-Issue $f.Name 1 'contract' '写死项目根路径（契约 root：改用 core/root.mjs 的 ROOT）' }   # @contract root
+    $first = ($text -split "`r?`n" | Where-Object { $_.Trim() } | Select-Object -First 1)
+    if ($first -and $first -notmatch '^\s*//') { Add-Issue $f.Name 1 'contract' '首行不是 // 注释（契约 report：文件头要说清这是什么）' }   # @contract report
+}
+
 # 4) .md 文件里的控制字符 —— 肉眼看不见，只能靠扫
 # 来源：双引号字符串里 `v 是垂直制表、`f 是换页、`a 是响铃，写替换字符串时被吃掉字母，
 # 文件看起来正常，实际那行已经坏了（今晚在 README 上连栽两次）。
@@ -124,7 +149,7 @@ $hints = @($script:scopeHints)
 
 if (-not $Quiet -or $total -gt 0 -or $hints.Count -gt 0) {
     if ($total -eq 0) {
-        Write-Host ("lint: {0} 个脚本 + {1} 个 md，没有问题" -f $files.Count, $mds.Count) -ForegroundColor Green
+        Write-Host ("lint: {0} 个 ps1 + {1} 个 mjs + {2} 个 md，没有问题" -f $files.Count, $mjsFiles.Count, $mds.Count) -ForegroundColor Green
     } else {
         $issues | Sort-Object File, Line | ForEach-Object {
             $color = if ($_.Kind -eq 'syntax') { 'Red' } else { 'Yellow' }
@@ -140,5 +165,8 @@ if (-not $Quiet -or $total -gt 0 -or $hints.Count -gt 0) {
         if ($hints.Count -gt 12) { Write-Host ("        ……还有 {0} 处" -f ($hints.Count - 12)) -ForegroundColor DarkGray }
     }
 }
+
+# 2026-11-09 机器码：免疫按这一行取结论，不再去猜人话（Write-Host 不上 stdout，之前 verify 那条因此一直是空过的）
+Write-Output ("SIG {{`"state`":{0},`"counts`":[{1},{2}]}}" -f ($(if ($fail -gt 0) { 2 } elseif ($total -gt 0) { 1 } else { 0 })), $files.Count, $total)
 
 if ($fail -gt 0) { exit 1 } else { exit 0 }

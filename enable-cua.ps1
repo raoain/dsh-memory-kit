@@ -22,6 +22,6 @@ $tmp = Join-Path $env:TEMP 'cua-activation.json'
 $resp = & curl.exe -sS --max-time 20 -X POST "http://127.0.0.1:$port/api/worlds/activation" `
     -H "Content-Type: application/json" --data-binary "@$tmp" 2>$null
 
-$log = 'F:\Tools\coo-day1\track\cua-enable.log'
+$log = (Join-Path $Track 'cua-enable.log')
 $line = ('{0}  {1}' -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), ($resp -join ' '))
 Add-Content -Path $log -Value $line -Encoding UTF8

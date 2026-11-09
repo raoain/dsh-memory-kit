@@ -76,7 +76,7 @@ if (Test-Path $meow) {
 $size = (Get-Item $zip).Length / 1MB
 Write-Host ("备份: {0} + {1}  ({2:N1} MB, 各留 {3} 份)" -f $zip, $zip2, $size, $Keep) -ForegroundColor Green
 # 第四份：自己的记忆索引（mem.mjs 导出），不依赖插件也能还原
-$index = 'F:\Tools\coo-day1\memories.jsonl'
+$index = (Join-Path $Root 'memories.jsonl')
 if (Test-Path $index) {
     $iName = "meow-index-$stamp.jsonl"
     foreach ($d in @($dst, $dst2)) {
@@ -90,4 +90,17 @@ if (Test-Path $index) {
 $sigState = 0
 if ($LASTEXITCODE -ne $null -and $LASTEXITCODE -ne 0) { $sigState = 2 }
 if ($sigState -eq 0 -and (Get-Variable -Name 'Failed' -ErrorAction SilentlyContinue) -and $Failed) { $sigState = 2 }
-Write-Output ("SIG " + (@{ state = $sigState; counts = @($sigState) } | ConvertTo-Json -Compress))
+$sigLine = "SIG " + (@{ state = $sigState; counts = @($sigState) } | ConvertTo-Json -Compress)
+Write-Output $sigLine
+# 2026-11-09: 投递这一半。器官跑完了，但没人把它的 SIG 送进总线 —— 中枢因此把它当成
+# "48 小时没上报"，尽管它每天真的在跑。这里照 watchdog 对 verify 的做法，自己走一次适配器。
+# 失败不改变备份结果本身。
+try {
+    $outDir = Join-Path $Root 'track\out'
+    if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir -Force | Out-Null }
+    $outFile = Join-Path $outDir '5.txt'
+    $sigLine | Out-File -FilePath $outFile -Encoding utf8
+    & node (Join-Path $Root 'core\adapter.mjs') 5 $outFile --exit $sigState 2>&1 | Out-Null
+} catch {
+    Write-Host ("adapter 失败：" + $_.Exception.Message) -ForegroundColor Yellow
+}

@@ -17,7 +17,7 @@ param(
     [switch]$Restore,
     [string]$Name,
     [int]$Days = 30,
-    [string]$Root = 'F:\Tools\coo-day1\trash'
+    [string]$Root = (Join-Path $Root 'trash')
 )
 . (Join-Path $PSScriptRoot '_root.ps1')
 
@@ -51,7 +51,7 @@ if ($Restore) {
     $hit = Get-ChildItem $Root -Recurse -File | Where-Object { $_.Name -eq $Name } | Select-Object -First 1
     if (-not $hit) { throw "垃圾桶里没有 $Name" }
     # 还原到项目根（原路径记在 .from 文件里，这里只做粗还原）
-    $dest = Join-Path 'F:\Tools\coo-day1' (($hit.Name -split '_', 2)[1])
+    $dest = Join-Path $Root (($hit.Name -split '_', 2)[1])
     Copy-Item $hit.FullName $dest -Force
     Write-Host "已复制回 $dest（原文件仍在垃圾桶里）" -ForegroundColor Green
     return

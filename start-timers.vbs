@@ -29,3 +29,4 @@ sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -C
 sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command ""& " & n & " '" & base & "\core\loop.mjs' --name reflex --every 3 -- " & n & " '" & base & "\core\reflex.mjs'""", 0, False
 sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command ""& " & n & " '" & base & "\core\loop.mjs' --name drift --every 60 -- " & n & " '" & base & "\core\drift.mjs'""", 0, False
 sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command ""& " & n & " '" & base & "\core\loop.mjs' --name sweep --every 1800 -- " & n & " '" & base & "\core\sweep.mjs'""", 0, False
+sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command ""& " & n & " '" & base & "\core\loop.mjs' --name backup --every 86400 -- powershell -NoProfile -ExecutionPolicy Bypass -File '" & base & "\backup.ps1'""", 0, False

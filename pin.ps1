@@ -17,9 +17,12 @@ param(
     [switch]$List,
     [string]$Set,
     [string]$Value,
-    [string]$StateFile = 'F:\Tools\coo-day1\state.json',
-    [string]$Root = 'F:\Tools\coo-day1'
+    [string]$StateFile = '',
+    [string]$Root = ''
 )
+if (-not $Root) { $Root = $PSScriptRoot }
+# 参数默认值在绑定阶段求值，那时 $Root 还不存在——所以空着，到这里再拼（2026-11-09 修）
+if (-not $StateFile) { $StateFile = Join-Path $Root 'state.json' }
 
 $ErrorActionPreference = 'Continue'
 
@@ -58,7 +61,7 @@ function Resolve-Pin($key) {
         }
         '^core\.(spec|registry)\.json$' { $f = Join-Path $Root ("core\" + $Matches[1] + ".json"); if (Test-Path $f) { return (Get-FileHash $f -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
         '^core\.(bus|adapter|dispatch|human|timefmt)\.mjs$' { $f = Join-Path $Root ("core\" + $Matches[1] + ".mjs"); if (Test-Path $f) { return (Get-FileHash $f -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
-        '^core\.bus\.count$' { $f = Join-Path $Root 'track\bus.jsonl'; if (Test-Path $f) { return [string]((Get-Content $f -Encoding UTF8 | Where-Object { $_.Trim() } | Measure-Object).Count) } else { return $null } }
+        '^core\.bus\.count$' { $f = Join-Path $Root 'track\bus.jsonl'; if (-not (Test-Path $f)) { return $null }; $n = (Get-Content $f -Encoding UTF8 | Where-Object { $_.Trim() } | Measure-Object).Count; $ad = Join-Path $Root 'track\archive'; foreach ($a in (Get-ChildItem $ad -Filter 'bus-*.jsonl' -File -ErrorAction SilentlyContinue)) { $n += (Get-Content $a.FullName -Encoding UTF8 | Where-Object { $_.Trim() } | Measure-Object).Count }; return [string]$n }
         '^ledger\.posts$' { $p = Join-Path $Root 'track\发布台账.jsonl'; if (Test-Path $p) { return [string]((Get-Content $p -Encoding UTF8 | Where-Object { $_.Trim() } | Measure-Object).Count) } else { return $null } }
         '^lint\.scriptCount$' { return [string]((Get-ChildItem $Root -Filter '*.ps1' -File | Measure-Object).Count) }
         '^doc\.work$' { $p = Join-Path $Root 'notebook\1-工作.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
@@ -243,6 +246,9 @@ if ($List) {
 }
 
 # 默认：对账
+# 2026-11-09: 会一直长的计数（累计 bus 行数）不能按「相等」判——每拍都在涨，相等判必然每次都报漂移，
+# 恒定噪声会训练人忽略对账。改成「只许涨」：涨了算对齐，掉了（丢失/回档）才算漂移。
+$Monotonic = @('core.bus.count')
 $drift = 0
 $checked = 0
 foreach ($k in ($state.pins.PSObject.Properties.Name | Sort-Object)) {
@@ -253,8 +259,14 @@ foreach ($k in ($state.pins.PSObject.Properties.Name | Sort-Object)) {
         Write-Host ("WARN  {0,-24} 记为 {1}，但现场算不出来了" -f $k, $pinned) -ForegroundColor Yellow
         $drift++
     } elseif ("$actual" -ne $pinned) {
-        Write-Host ("DRIFT {0,-24} 记着 {1} → 实际 {2}" -f $k, $pinned, "$actual") -ForegroundColor Red
-        $drift++
+        $numA = 0.0; $numP = 0.0
+        $growOk = ($Monotonic -contains $k) -and [double]::TryParse($pinned, [ref]$numP) -and [double]::TryParse("$actual", [ref]$numA) -and ($numA -ge $numP)
+        if ($growOk) {
+            # grow-ok：比记着的大 = 正常往前走，不报
+        } else {
+            Write-Host ("DRIFT {0,-24} 记着 {1} → 实际 {2}" -f $k, $pinned, "$actual") -ForegroundColor Red
+            $drift++
+        }
     }
 }
 if ($drift -eq 0) {

@@ -55,8 +55,8 @@ switch ($Action) {
         Write-Host "档案层 +1" -ForegroundColor Green
     }
     'close' {
-        & 'F:\Tools\coo-day1\status.ps1' 2>&1 | Select-Object -Last 1 | Out-Null
-        & 'F:\Tools\coo-day1\backup.ps1' 2>&1
+        & (Join-Path $Root 'status.ps1') 2>&1 | Select-Object -Last 1 | Out-Null
+        & (Join-Path $Root 'backup.ps1') 2>&1
         Add-Line $Work ("- [{0}] 收工" -f $now)
         Write-Host '收工：快照 + 备份已落盘' -ForegroundColor Green
     }

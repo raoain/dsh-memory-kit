@@ -1,4 +1,4 @@
-﻿﻿﻿﻿# verify.ps1 — 一条命令核对「可核对的事实」，输出 OK / WARN / FAIL
+﻿# verify.ps1 — 一条命令核对「可核对的事实」，输出 OK / WARN / FAIL
 #
 # 为什么要有这个：所有反馈都是事后型（等你发现、等 12 小时、等我看输出不对）。
 # 快速迭代需要「改完当场暴露」的机制，而它必须便宜到能随手跑（目标 <5 秒）。
@@ -12,6 +12,14 @@ param(
     [switch]$Quiet
 )
 
+$script:ImmuneJsonCache = $null
+# 2026-11-09 用户：「他跑一次，后面给结果，自己分别去取就行了」——免疫整轮只跑一次，各检查项查缓存
+function Get-ImmuneJson {
+    if ($null -eq $script:ImmuneJsonCache) {
+        $script:ImmuneJsonCache = (& node (Join-Path $Root 'core\immunity.mjs') --json 2>$null) -join ''
+    }
+    return $script:ImmuneJsonCache
+}
 $ErrorActionPreference = 'Continue'
 $sw = [Diagnostics.Stopwatch]::StartNew()
 . (Join-Path $PSScriptRoot '_root.ps1')
@@ -52,40 +60,47 @@ function Add-Result($level, $item, $detail) {
 $core = Join-Path $nb '0-核心.md'
 if (-not (Test-Path $core)) { Add-Result 'FAIL' '核心层' '文件不存在' }
 else {
-    $len = (Get-Item $core).Length
-    $secs = (Select-String -Path $core -Pattern '^## ' -Encoding UTF8 | Measure-Object).Count
-    if ($len -gt 2048) { Add-Result 'FAIL' '核心层大小' ("{0} B（超 {1} B）" -f $len, ($len - 2048)) }
-    elseif ($len -gt 2000) { Add-Result 'WARN' '核心层大小' ("{0} B（余 {1} B，贴顶）" -f $len, (2048 - $len)) }
-    else { Add-Result 'OK' '核心层大小' "$len B" }
-    if ($secs -lt 4) { Add-Result 'WARN' '核心层结构' "只剩 $secs 节（应 ≥4）→ 有人删了内容" } else { Add-Result 'OK' '核心层结构' "$secs 节" }
-}
-
-# 2. 墓碑：存在、条目数、空条目
-$tomb = Join-Path $nb '3-墓碑.md'
-if (-not (Test-Path $tomb)) { Add-Result 'FAIL' '墓碑' '文件不存在' }
-else {
-    $text = [IO.File]::ReadAllText($tomb, [Text.Encoding]::UTF8)
-    $entries = ([regex]::Matches(($text -split '## 新条目怎么加')[0], '(?m)^### ')).Count
-    $empty = ([regex]::Matches($text, '(?m)^### .+\r?\n\s*\r?\n(###|$)')).Count
-    Add-Result 'OK' '墓碑条目' "$entries 条"
-    if ($empty -gt 0) { Add-Result 'WARN' '墓碑空条目' "$empty 条没写原因" }
-    if ($text -notmatch '为什么' -or $text -notmatch '现在按') { Add-Result 'WARN' '墓碑格式' '缺少「为什么 / 现在按」三段式' } else { Add-Result 'OK' '墓碑格式' '三段式齐全' }
-}
-
-# 3. 开工留痕：今天读过吗
-$mark = Join-Path $root 'track\wake-last.txt'
-if (-not (Test-Path $mark)) { Add-Result 'FAIL' 'wake 留痕' '不存在（今天没跑过 wake.ps1）' }
-else {
-    $raw = (Get-Content $mark -Raw -Encoding UTF8).Trim()
-    $m = [regex]::Match($raw, '^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})')
-    if (-not $m.Success) { Add-Result 'WARN' 'wake 留痕' "格式异常: $raw" }
-    else {
-        $t = [datetime]::ParseExact($m.Groups[1].Value, 'yyyy-MM-dd HH:mm:ss', $null)
-        $ageH = ((Get-Date) - $t).TotalHours
-        if ($ageH -gt 24) { Add-Result 'WARN' 'wake 留痕' ("{0:N1} 小时前" -f $ageH) }
-        elseif ($ageH -gt 12) { Add-Result 'WARN' 'wake 留痕' ("{0:N1} 小时前（偏旧）" -f $ageH) }
-        else { Add-Result 'OK' 'wake 留痕' ("{0:N1} 小时前" -f $ageH) }
+    # 1a. 核心层大小/节数（2026-11-09 移交免疫：上限与节数在 spec.pages.core，判定是 core-page）
+    $pageRow = $null
+    try {
+        $pageJson = (Get-ImmuneJson)
+        $pageRow = @(($pageJson | ConvertFrom-Json).rows | Where-Object { $_.id -eq 'core-page' })[0]
+    } catch { $pageRow = $null }
+    if (-not $pageRow) {
+        Add-Result 'WARN' '核心层大小' '免疫没给出 core-page（检查器没跑起来？）'
+    } elseif (-not $pageRow.ok) {
+        Add-Result 'FAIL' '核心层大小' $pageRow.detail
+    } else {
+        Add-Result 'OK' '核心层大小' $pageRow.detail
     }
+}
+
+# 2. 墓碑（2026-11-09 移交免疫：规则在 spec.pages.tombstone，判定是 tombstone）
+$tombRow = $null
+try {
+    $tombJson = (Get-ImmuneJson)
+    $tombRow = @(($tombJson | ConvertFrom-Json).rows | Where-Object { $_.id -eq 'tombstone' })[0]
+} catch { $tombRow = $null }
+if (-not $tombRow) {
+    Add-Result 'WARN' '墓碑' '免疫没给出 tombstone（检查器没跑起来？）'
+} elseif (-not $tombRow.ok) {
+    Add-Result 'WARN' '墓碑' $tombRow.detail
+} else {
+    Add-Result 'OK' '墓碑' $tombRow.detail
+}
+
+# 3. 开工留痕（2026-11-09 移交免疫：规则在 spec.reminders.wake_mark，判定是 wake-fresh）
+$wakeRow = $null
+try {
+    $wakeJson = (Get-ImmuneJson)
+    $wakeRow = @(($wakeJson | ConvertFrom-Json).rows | Where-Object { $_.id -eq 'wake-fresh' })[0]
+} catch { $wakeRow = $null }
+if (-not $wakeRow) {
+    Add-Result 'WARN' 'wake 留痕' '免疫没给出 wake-fresh（检查器没跑起来？）'
+} elseif (-not $wakeRow.ok) {
+    Add-Result 'WARN' 'wake 留痕' $wakeRow.detail
+} else {
+    Add-Result 'OK' 'wake 留痕' $wakeRow.detail
 }
 
 # 4. 备份：双盘 + 最新时间
@@ -119,21 +134,32 @@ else {
 
 # 7. 最近快照
 $snapDir = Join-Path $root 'track\own'
-$snap = Get-ChildItem $snapDir -Filter '*.json' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-if (-not $snap) { Add-Result 'WARN' '最近快照' '没有快照' }
-else {
-    $h = ((Get-Date) - $snap.LastWriteTime).TotalHours
-    if ($h -gt 30) { Add-Result 'WARN' '最近快照' ("{0:N1} 小时前（该跑 status.ps1 -Diff）" -f $h) }
-    else { Add-Result 'OK' '最近快照' ("{0:N1} 小时前" -f $h) }
+# 7. 最近快照（2026-11-09 移交免疫：规则在 spec.reminders.snapshot，判定是 snapshot-fresh）
+$snapRow = $null
+try {
+    $snapJson = (Get-ImmuneJson)
+    $snapRow = @(($snapJson | ConvertFrom-Json).rows | Where-Object { $_.id -eq 'snapshot-fresh' })[0]
+} catch { $snapRow = $null }
+if (-not $snapRow) {
+    Add-Result 'WARN' '最近快照' '免疫没给出 snapshot-fresh（检查器没跑起来？）'
+} elseif (-not $snapRow.ok) {
+    Add-Result 'WARN' '最近快照' $snapRow.detail
+} else {
+    Add-Result 'OK' '最近快照' $snapRow.detail
 }
 
-# 8. 垃圾场规模
-$trash = Join-Path $root 'trash'
-if (Test-Path $trash) {
-    $items = Get-ChildItem $trash -Recurse -File | Where-Object { $_.Name -notlike '*.from' }
-    $mb = if ($items) { [math]::Round((($items | Measure-Object Length -Sum).Sum / 1MB), 1) } else { 0 }
-    if ($mb -gt 200) { Add-Result 'WARN' '垃圾场' "$($items.Count) 项 / $mb MB（该 -Empty 了）" }
-    else { Add-Result 'OK' '垃圾场' "$($items.Count) 项 / $mb MB" }
+# 8. 垃圾场规模（2026-11-09 移交免疫：规则在 spec.reminders.trash，判定是 trash-size）
+$trashRow = $null
+try {
+    $trashJson = (Get-ImmuneJson)
+    $trashRow = @(($trashJson | ConvertFrom-Json).rows | Where-Object { $_.id -eq 'trash-size' })[0]
+} catch { $trashRow = $null }
+if (-not $trashRow) {
+    Add-Result 'WARN' '垃圾场' '免疫没给出 trash-size（检查器没跑起来？）'
+} elseif (-not $trashRow.ok) {
+    Add-Result 'WARN' '垃圾场' $trashRow.detail
+} else {
+    Add-Result 'OK' '垃圾场' $trashRow.detail
 }
 
 # 9. 可选：联网核查最近发布
@@ -151,51 +177,45 @@ if ($Deep) {
 }
 
 
-# 10. 脚本静态检查（同名变量 / PS5.1 语法）
-$lint = Join-Path $Root 'lint.ps1'
-if (Test-Path $lint) {
-    $lo = & powershell -NoProfile -ExecutionPolicy Bypass -File $lint -Path $Root -Quiet 2>&1 | Out-String
-    $m = [regex]::Match($lo, '(\d+) 处问题')
-    if ($m.Success -and [int]$m.Groups[1].Value -gt 0) { Add-Result 'WARN' '脚本 lint' ("{0} 处问题（跑 lint.ps1 看明细）" -f $m.Groups[1].Value) }
-    else { Add-Result 'OK' '脚本 lint' '无问题' }
+# 10. 脚本静态检查（2026-11-09 移交免疫：规则在 spec.tools.lint，判定是 ps1-lint）
+$lintRow = $null
+try {
+    $lintJson = (Get-ImmuneJson)
+    $lintRow = @(($lintJson | ConvertFrom-Json).rows | Where-Object { $_.id -eq 'ps1-lint' })[0]
+} catch { $lintRow = $null }
+if (-not $lintRow) {
+    Add-Result 'WARN' '脚本 lint' '免疫没给出 ps1-lint（检查器没跑起来？）'
+} elseif (-not $lintRow.ok) {
+    Add-Result 'WARN' '脚本 lint' $lintRow.detail
+} else {
+    Add-Result 'OK' '脚本 lint' $lintRow.detail
 }
 
-# 11. 未钉脚本（改了一半的自动暴露，不靠我嘴说）
-$stateFile = Join-Path $Root 'state.json'
-if (Test-Path $stateFile) {
-    $pins = (Get-Content $stateFile -Raw -Encoding UTF8 | ConvertFrom-Json).pins.PSObject.Properties.Name
-    $unpinned = Get-ChildItem $Root -Filter '*.ps1' -File -ErrorAction SilentlyContinue |
-        Where-Object { $pins -notcontains "script.$($_.Name)" } | ForEach-Object { $_.Name }
-    if ($unpinned) { Add-Result 'WARN' '未钉脚本' "发现 $($unpinned.Count) 个脚本没进引脚 → pin.ps1 -Init（$($unpinned -join ', ')）" }
-    else { Add-Result 'OK' '未钉脚本' '全部已钉' }
+# 11. 未钉脚本（2026-11-09 移交免疫：判定在 core/immunity.mjs 的 pins-cover-scripts）
+$pinRow = $null
+try {
+    $pinJson = (Get-ImmuneJson)
+    $pinRow = @(($pinJson | ConvertFrom-Json).rows | Where-Object { $_.id -eq 'pins-cover-scripts' })[0]
+} catch { $pinRow = $null }
+if (-not $pinRow) {
+    Add-Result 'WARN' '未钉脚本' '免疫没给出 pins-cover-scripts（检查器没跑起来？）'
+} elseif (-not $pinRow.ok) {
+    Add-Result 'WARN' '未钉脚本' $pinRow.detail
+} else {
+    Add-Result 'OK' '未钉脚本' $pinRow.detail
 }
-# 12. 流水时间戳：完整日期 + 顺序非递减
-# 为什么：只写 MM-DD 时归档脚本靠猜年份；顺序不看的话，一条插进中间、或时间被改早，
-# 引脚（只有 count 和哈希）根本不会响。所以这里查「格式」和「秩序」两件事。
-$seqFiles = @(
-    @{ Name = '档案时间戳'; Path = (Join-Path $nb '2-档案.md'); Pat = '(?m)^- 时间：(\d{4}-\d{2}-\d{2} \d{2}:\d{2})' },
-    @{ Name = '工作层时间戳'; Path = (Join-Path $nb '1-工作.md'); Pat = '(?m)^- \[(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\]' }
-)
-foreach ($sf in $seqFiles) {
-    if (-not (Test-Path $sf.Path)) { Add-Result 'WARN' $sf.Name '文件不存在'; continue }
-    $txt = [IO.File]::ReadAllText($sf.Path, [Text.Encoding]::UTF8)
-    $ms = [regex]::Matches($txt, $sf.Pat)
-    if ($ms.Count -eq 0) { Add-Result 'WARN' $sf.Name '一条都没匹配到 —— 不是"格式全对"，是文件或格式已变'; continue }
-    $bad = 0; $back = $null; $prev = $null; $prevRaw = ''; $dup = 0
-    foreach ($m in $ms) {
-        $raw = $m.Groups[1].Value
-        $d = $null
-        try { $d = [datetime]::ParseExact($raw, 'yyyy-MM-dd HH:mm', $null) } catch { $bad++ }
-        if ($d) {
-            if ($prev -and $d -lt $prev -and -not $back) { $back = "$prevRaw → $raw" }
-            if ($prev -and $d -eq $prev) { $dup++ }; $prev = $d; $prevRaw = $raw
-        }
-    }
-    $problems = @()
-    if ($bad -gt 0) { $problems += "$bad 条日期非法" }
-    if ($back) { $problems += "时间倒退（$back）" }
-    if ($problems.Count -gt 0) { Add-Result 'WARN' $sf.Name ("{0} 条；{1}" -f $ms.Count, ($problems -join '；')) }
-    else { $d2 = "{0} 条，格式完整、顺序递增" -f $ms.Count; if ($dup -gt 0) { $d2 += "（{0} 处同分钟，合法，仅提示）" -f $dup }; Add-Result 'OK' $sf.Name $d2 }
+# 12. 流水时间戳（2026-11-09 移交免疫：格式/顺序在 spec.pages.timeline，判定是 timeline-order）
+$timeRow = $null
+try {
+    $timeJson = (Get-ImmuneJson)
+    $timeRow = @(($timeJson | ConvertFrom-Json).rows | Where-Object { $_.id -eq 'timeline-order' })[0]
+} catch { $timeRow = $null }
+if (-not $timeRow) {
+    Add-Result 'WARN' '流水时间戳' '免疫没给出 timeline-order（检查器没跑起来？）'
+} elseif (-not $timeRow.ok) {
+    Add-Result 'WARN' '流水时间戳' $timeRow.detail
+} else {
+    Add-Result 'OK' '流水时间戳' $timeRow.detail
 }
 # 12b. 反向检查：凡看起来是流水行，就必须是完整格式
 # 为什么：只查「匹配到的那几条」会静默漏掉旧格式写入 —— 插件写 MM-DD 时，
@@ -240,20 +260,25 @@ if (Test-Path $tagP) {
 $localDoc = Join-Path $nb '4-本机.md'
 if (-not (Test-Path $localDoc)) { Add-Result 'FAIL' '本机错题本' '4-本机.md 不存在 —— 本机陷阱无处可查' }
 else {
+    # wake 留痕路径在本项自己的作用域里重算一次（原 $mark 随第 3 项移交免疫被删掉了）
+    $mark = Join-Path $root 'track\wake-last.txt'
     $mkRaw = if (Test-Path $mark) { Get-Content $mark -Raw -Encoding UTF8 } else { '' }
     if ($mkRaw -notmatch '4-本机\.md') { Add-Result 'WARN' '本机错题本' '文件在，但 wake 留痕里没有它（可能没被读）' }
     else { Add-Result 'OK' '本机错题本' ("{0} B，wake 已记录" -f (Get-Item $localDoc).Length) }
 }
-# 14. .ps1 必须带 UTF-8 BOM（PS 5.1 把无 BOM 的 UTF-8 当 GBK，中文乱码 + 语法报错）
-$ps1s = Get-ChildItem $root -Filter '*.ps1' -File -ErrorAction SilentlyContinue
-$noBom = @()
-foreach ($f in $ps1s) {
-    $bb = [IO.File]::ReadAllBytes($f.FullName)
-    $hasB = ($bb.Length -ge 3 -and $bb[0] -eq 0xEF -and $bb[1] -eq 0xBB -and $bb[2] -eq 0xBF)
-    if (-not $hasB) { $noBom += $f.Name }
+# 14. .ps1 必须带 UTF-8 BOM（2026-11-09 移交免疫：标准与判定都在 core/immunity.mjs 的 ps1-bom）
+$bomRow = $null
+try {
+    $bomJson = (Get-ImmuneJson)
+    $bomRow = @(($bomJson | ConvertFrom-Json).rows | Where-Object { $_.id -eq 'ps1-bom' })[0]
+} catch { $bomRow = $null }
+if (-not $bomRow) {
+    Add-Result 'WARN' 'PS1 BOM' '免疫没给出 ps1-bom（检查器没跑起来？）'
+} elseif (-not $bomRow.ok) {
+    Add-Result 'WARN' 'PS1 BOM' $bomRow.detail
+} else {
+    Add-Result 'OK' 'PS1 BOM' $bomRow.detail
 }
-if ($noBom.Count -gt 0) { Add-Result 'WARN' 'PS1 BOM' ("{0} 个缺 BOM：{1}（跑 fix-bom.ps1）" -f $noBom.Count, (($noBom | Select-Object -First 3) -join ', ')) }
-else { Add-Result 'OK' 'PS1 BOM' ("{0} 个全带 BOM" -f $ps1s.Count) }
 
 # 13. 归因检查（说了「用户说」却引不出原话）
 $attrib = Join-Path $Root 'attrib.ps1'
@@ -408,7 +433,7 @@ if (Test-Path $workF) {
     }
     if (-not $lastT) { $lastT = (Get-Date).AddHours(-2) }
     $unlogged = @(Get-ChildItem $Root -Recurse -Include *.ps1,*.md,*.mjs,*.json,*.jsonl -File -ErrorAction SilentlyContinue |
-        Where-Object { $_.FullName -notmatch '\\trash\\|\\build\\|\\archive\\|\\audio|\\out\\' -and $_.Name -notmatch '^(warn-streak|state|baseline|预测数据|wake-last|1-工作|self-baseline|\.reflex-|\.dispatch-|bus\.jsonl)' -and $_.LastWriteTime -gt $lastT }).Count
+        Where-Object { $_.FullName -notmatch '\\trash\\|\\build\\|\\archive\\|\\audio|\\out\\|\\align\\|\\mind\\' -and $_.Name -notmatch '^(warn-streak|state|baseline|预测数据|wake-last|1-工作|self-baseline|\.reflex-|\.dispatch-|bus\.jsonl|align\.jsonl|memories\.jsonl|\.probe-last|免疫表|脚本清单|center|events\.jsonl|watchdog\.jsonl|\.source-language|\.bus\.before-discharge|\.consolidate-cursor|drift-pending|drift-streak|drift-raw|\.arbiter|dispatch\.jsonl|brain\.jsonl|nucleus)' -and $_.LastWriteTime -gt $lastT }).Count
     if ($unlogged -gt 3) {
         Add-Result 'WARN' '改动留痕比' ("上次记录（{0}）之后又改了 {1} 个文件没记 → 跑 log.ps1" -f $lastT.ToString('HH:mm'), $unlogged)
     } else {
@@ -586,13 +611,15 @@ if (Test-Path $nbDir) {
 $coreP = Join-Path $Root 'notebook\0-核心.md'
 if (Test-Path $coreP) {
     $coreTxt = [IO.File]::ReadAllText($coreP, [Text.Encoding]::UTF8)
+    # 2026-11-09：核心层改成目录页后，「指向某页」的行是接口不是承重件——含箭头或反引号文件名的行不计
+    $bodyTxt = (($coreTxt -split "`r?`n") | Where-Object { $_ -notmatch '→' -and $_ -notmatch '`[^`]+\.md`' }) -join "`n"
     $heavy = @('船长是谁', '船长要的', '他讨厌', '这台机器', '原话')
     $found = @()
-    foreach ($hw in $heavy) { if ($coreTxt.Contains($hw)) { $found += $hw } }
+    foreach ($hw in $heavy) { if ($bodyTxt.Contains($hw)) { $found += $hw } }
     if ($found.Count -gt 0) {
         Add-Result 'WARN' '轴不装货' ("核心层里出现了承重件：$($found -join '、') → 挪到 9-用户 / 4-本机 / 8-原话")
     } else {
-        Add-Result 'OK' '轴不装货' '核心层只有发动机（总纲/我是谁/纪律/元规则）'
+        Add-Result 'OK' '轴不装货' '核心层只有发动机与目录指针'
     }
 }
 
@@ -650,25 +677,18 @@ if (Test-Path $heyboxD) {
     }
 }
 
-# 41. 自我集：基线是否存在、是否过期、偏离多少（只学正常，不学异常）
-$baseF = Join-Path $Root 'track\baseline.json'
-if (-not (Test-Path $baseF)) {
-    Add-Result 'WARN' '自我集' '没有基线（跑 baseline.ps1 -Snap）→ 只学了「什么算错」，没学「正常长什么样」'
+# 41. 自我集（2026-11-09 移交免疫：规则在 spec.liveness.self_set，判定是 self-set，含年龄与偏离）
+$selfRow = $null
+try {
+    $selfJson = (Get-ImmuneJson)
+    $selfRow = @(($selfJson | ConvertFrom-Json).rows | Where-Object { $_.id -eq 'self-set' })[0]
+} catch { $selfRow = $null }
+if (-not $selfRow) {
+    Add-Result 'WARN' '自我集' '免疫没给出 self-set（检查器没跑起来？）'
+} elseif (-not $selfRow.ok) {
+    Add-Result 'WARN' '自我集' $selfRow.detail
 } else {
-    $bo = Get-Content $baseF -Raw -Encoding UTF8 | ConvertFrom-Json
-    $snapT = [datetime]::Parse($bo.snapAt)
-    $ageD = ((Get-Date) - $snapT).TotalDays
-    $bd = & (Join-Path $Root 'baseline.ps1') 2>&1 | Out-String
-    $nm = [regex]::Match($bd, '偏离 (\d+) 项')
-    $n = 0
-    if ($nm.Success) { $n = [int]$nm.Groups[1].Value }
-    if ($ageD -gt 7) {
-        Add-Result 'WARN' '自我集' ("基线已 {0:N0} 天未更新（偏离 {1} 项）→ 重拍一次" -f $ageD, $n)
-    } elseif ($n -gt 5) {
-        Add-Result 'WARN' '自我集' ("与基线偏离 {0} 项 → 要么是长身体了（重拍基线），要么是病了（查偏离）" -f $n)
-    } else {
-        Add-Result 'OK' '自我集' ("基线 {0:N0} 天前，偏离 {1} 项" -f $ageD, $n)
-    }
+    Add-Result 'OK' '自我集' $selfRow.detail
 }
 
 
@@ -746,49 +766,34 @@ if ($ruleCnt -gt 20) {
 } else {
     Add-Result 'OK' '框架冻结' ("AGENTS {0} 条（上限 20）；框架冻结中" -f $ruleCnt)
 }
-# 46. 核心纯 ASCII：核心数据（core/*.json、track/bus.jsonl）不许出现非 ASCII 字符
-# 判据（2026-11-07）：核心统一数字与英文，中文只在外层翻译；核心必须保证是纯的。
-$coreBad = @()
-$coreFiles = @()
-$coreDir = Join-Path $Root 'core'
-if (Test-Path $coreDir) { $coreFiles += @(Get-ChildItem $coreDir -Filter '*.json' -File) }
-$busFile = Join-Path $Root 'track\bus.jsonl'
-if (Test-Path $busFile) { $coreFiles += @(Get-Item $busFile) }
-foreach ($cf in $coreFiles) {
-    $ln = 0
-    foreach ($line in (Get-Content $cf.FullName -Encoding UTF8)) {
-        $ln++
-        if ($line -match '[^\x00-\x7F]') { $coreBad += ("{0}:{1}" -f $cf.Name, $ln) }
-    }
-}
-if ($coreBad.Count -gt 0) {
-    Add-Result 'FAIL' '核心纯 ASCII' ("{0} 处非 ASCII：{1}" -f $coreBad.Count, (($coreBad | Select-Object -First 3) -join ', '))
+# 46. 核心纯 ASCII（2026-11-09 移交给免疫）：verify 不再自己扫一遍，
+# 改成问 core/immunity.mjs 要 core-data-ascii 那一条的结论——标准在 spec，判在免疫。
+$asciiRow = $null
+try {
+    $immJson = (Get-ImmuneJson)
+    $immObj = $immJson | ConvertFrom-Json
+    $asciiRow = @($immObj.rows | Where-Object { $_.id -eq 'core-data-ascii' })[0]
+} catch { $asciiRow = $null }
+if (-not $asciiRow) {
+    Add-Result 'WARN' '核心纯 ASCII' '免疫没给出 core-data-ascii（检查器没跑起来？）'
+} elseif (-not $asciiRow.ok) {
+    Add-Result 'FAIL' '核心纯 ASCII' $asciiRow.detail
 } else {
-    Add-Result 'OK' '核心纯 ASCII' ("{0} 个核心数据文件全 ASCII" -f $coreFiles.Count)
+    Add-Result 'OK' '核心纯 ASCII' $asciiRow.detail
 }
 
-# 47. 器官清单：registry 里登记的器官，文件必须存在（缺器官要当场报，不能等它不响应才发现）
-$regPath = Join-Path $Root 'core\registry.json'
-if (-not (Test-Path $regPath)) {
-    Add-Result 'FAIL' '器官清单' 'registry.json 不存在'
+# 47. 器官清单（2026-11-09 移交免疫：判定在 core/immunity.mjs 的 organ-path）
+$organRow = $null
+try {
+    $organJson = (Get-ImmuneJson)
+    $organRow = @(($organJson | ConvertFrom-Json).rows | Where-Object { $_.id -eq 'organ-path' })[0]
+} catch { $organRow = $null }
+if (-not $organRow) {
+    Add-Result 'WARN' '器官清单' '免疫没给出 organ-path（检查器没跑起来？）'
+} elseif (-not $organRow.ok) {
+    Add-Result 'FAIL' '器官清单' $organRow.detail
 } else {
-    try {
-        $reg = Get-Content $regPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        $missingCells = @()
-        $cellCount = 0
-        foreach ($prop in $reg.cells.PSObject.Properties) {
-            $cellCount++
-            $cellPath = Join-Path $Root $prop.Value.path
-            if (-not (Test-Path $cellPath)) { $missingCells += ("{0}({1})" -f $prop.Value.id, $prop.Value.path) }
-        }
-        if ($missingCells.Count -gt 0) {
-            Add-Result 'FAIL' '器官清单' ("缺 {0} 个：{1}" -f $missingCells.Count, ($missingCells -join ', '))
-        } else {
-            Add-Result 'OK' '器官清单' ("{0} 个登记器官全部在位" -f $cellCount)
-        }
-    } catch {
-        Add-Result 'FAIL' '器官清单' ('registry 解析失败')
-    }
+    Add-Result 'OK' '器官清单' $organRow.detail
 }
 
 # 48. 心跳还活着：最近一条 src7 距今不超过 5 分钟
@@ -808,26 +813,33 @@ if ($hbLimitSec -lt 3) { $hbLimitSec = 9 }if ($hbAge -eq 9999) { Add-Result 'FAI
 elseif ($hbAge -gt $hbLimitSec) { Add-Result 'FAIL' '心跳活着' ("心跳已停 {0} 秒（上限 {1} 秒，来自 spec.expect.heartbeat）" -f $hbAge, $hbLimitSec) }
 else { Add-Result 'OK' '心跳活着' ("{0} 秒前还有一跳" -f $hbAge) }
 
-# 49. 唯一根定义：根路径只允许在 _root.ps1 / core/root.mjs 里定义
-# 为什么：24 个脚本曾各自定义，统一后没有任何东西防止它再长回来（P35）。
-$cnOut = & node (Join-Path $Root 'check-naming.mjs') 2>$null
-if (-not $cnOut) {
-    Add-Result 'WARN' '唯一根定义' 'check-naming.mjs 跑不起来'
+# 49. 唯一根定义（2026-11-09 移交免疫：规则在 spec.liveness.roots，判定是 roots-unique）
+$rootRow = $null
+try {
+    $rootJson = (Get-ImmuneJson)
+    $rootRow = @(($rootJson | ConvertFrom-Json).rows | Where-Object { $_.id -eq 'roots-unique' })[0]
+} catch { $rootRow = $null }
+if (-not $rootRow) {
+    Add-Result 'WARN' '唯一根定义' '免疫没给出 roots-unique（检查器没跑起来？）'
+} elseif (-not $rootRow.ok) {
+    Add-Result 'FAIL' '唯一根定义' $rootRow.detail
 } else {
-    try {
-        $cn = $cnOut | ConvertFrom-Json
-        $rootDefs = [int]$cn.definitions.root.definitions
-        if ($rootDefs -gt 1) { Add-Result 'FAIL' '唯一根定义' ("根路径定义了 {0} 处（只允许 1 处）" -f $rootDefs) }
-        else { Add-Result 'OK' '唯一根定义' ("定义 {0} 处" -f $rootDefs) }
-    } catch { Add-Result 'WARN' '唯一根定义' 'check-naming 输出解析失败' }
+    Add-Result 'OK' '唯一根定义' $rootRow.detail
 }
 
-# 50. 定时器三件：start-timers.vbs 与 timers-alive.mjs 必须在
-$need = @('start-timers.vbs', 'core\timers-alive.mjs')
-$lost = @()
-foreach ($n in $need) { if (-not (Test-Path (Join-Path $Root $n))) { $lost += $n } }
-if ($lost.Count) { Add-Result 'FAIL' '定时器三件' ("缺：{0}" -f ($lost -join ', ')) }
-else { Add-Result 'OK' '定时器三件' '启动器与心跳探测都在' }
+# 50. 定时器三件（2026-11-09 移交免疫：规则在 spec.liveness.timers，判定是 timers-present）
+$timerRow = $null
+try {
+    $timerJson = (Get-ImmuneJson)
+    $timerRow = @(($timerJson | ConvertFrom-Json).rows | Where-Object { $_.id -eq 'timers-present' })[0]
+} catch { $timerRow = $null }
+if (-not $timerRow) {
+    Add-Result 'WARN' '定时器三件' '免疫没给出 timers-present（检查器没跑起来？）'
+} elseif (-not $timerRow.ok) {
+    Add-Result 'FAIL' '定时器三件' $timerRow.detail
+} else {
+    Add-Result 'OK' '定时器三件' $timerRow.detail
+}
 
 # 51. 探针报到（死信开关）：probe 跑完会写 track\.probe-last.json。
 # 为什么：探针自己没探针，但它一定会"报到"——不报到就是没跑，数字不对就是有哑炮。
@@ -861,7 +873,8 @@ if ($LASTEXITCODE -eq 0) {
 }
 $checksBefore = $rows.Count
 # 口径：expectedChecks = 总项数 − 1（自检这一项自己不计入）
-$expectedChecks = 52
+# 2026-11-09：核心层大小与核心层结构合并成一项（交给免疫 core-page），总项数 53 → 52
+$expectedChecks = 49
 if ($checksBefore -lt $expectedChecks) {
     Add-Result 'FAIL' '检查器自检' ("只跑了 $checksBefore 项 / 预期 $expectedChecks 项 —— 有检查被跳过或结果被覆盖")
 } elseif ($checksBefore -gt $expectedChecks) {

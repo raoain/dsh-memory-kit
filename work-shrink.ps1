@@ -11,9 +11,10 @@
 param(
     [int]$Keep = 120,
     [switch]$DryRun,
-    [string]$Root = 'F:\Tools\coo-day1\notebook',
+    [string]$Root = '',
     [string]$File = '1-工作.md'
 )
+if (-not $Root) { $Root = $PSScriptRoot }
 . (Join-Path $PSScriptRoot '_root.ps1')
 
 $ErrorActionPreference = 'Stop'

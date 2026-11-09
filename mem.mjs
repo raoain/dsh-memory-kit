@@ -1,4 +1,4 @@
-﻿// mem.mjs — 自己的记忆索引：导出 + 自己的排序（不依赖插件）
+// mem.mjs — 自己的记忆索引：导出 + 自己的排序（不依赖插件）
 //
 // 为什么要这个：meow 插件的检索排序我控制不了，它给我什么我就想起什么。
 // 这份是「骨」：把库导出成本地 JSONL，用自己的 BM25 排序，可备份、可审计、可替换。
@@ -10,9 +10,13 @@
 
 import { readFileSync, writeFileSync, appendFileSync, existsSync } from 'node:fs'
 import { DatabaseSync } from 'node:sqlite'
+import { join } from 'node:path'
+import { ROOT } from './core/root.mjs'
 
+// DB 是外部的（meow 数据目录），不属于本项目根，所以它走环境变量 + 显式默认值
 const DB = process.env.MEOW_DB || 'C:/Users/Administrator/Documents/deepseek-harness/default-workspace/.dsh-meow/memory.db'
-const OUT = 'F:/Tools/coo-day1/memories.jsonl'
+// 导出文件属于本项目，根从 core/root.mjs 拿，不再写死
+const OUT = join(ROOT, 'memories.jsonl')
 const LAYERS = ['soul', 'user', 'project', 'fact', 'lesson', 'topic', 'rules']
 
 const [cmd, ...rest] = process.argv.slice(2)

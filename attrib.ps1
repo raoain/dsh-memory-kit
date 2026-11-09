@@ -8,7 +8,7 @@
 #   .\attrib.ps1 -Path F:\x      # 扫指定目录
 #   .\attrib.ps1 -Quiet          # 只在有问题时输出
 param(
-    [string[]]$Path = @('F:\Tools\coo-day1\notebook', 'F:\Tools\coo-day1\heybox', 'F:\Tools\coo-day1'),
+    [string[]]$Path = @($Notebook, (Join-Path $Root 'heybox'), $Root),
     [switch]$Quiet
 )
 . (Join-Path $PSScriptRoot '_root.ps1')

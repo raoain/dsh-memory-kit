@@ -11,7 +11,7 @@ param(
     [string]$Promise,
     [string]$Next,
     [switch]$Show,
-    [string]$Root = 'F:\Tools\coo-day1\notebook'
+    [string]$Root = $Notebook
 )
 . (Join-Path $PSScriptRoot '_root.ps1')
 
