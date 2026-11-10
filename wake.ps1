@@ -24,9 +24,32 @@ Write-Host "`n--- 用户层（他怎么说话：读法，不是身份）---" -Fo
 if (Test-Path $user) { Get-Content $user -Encoding UTF8 }
 else { Write-Host "（缺 9-用户.md —— 短消息怎么读无处可查）" -ForegroundColor Yellow }
 
+Write-Host "`n--- 加加急·已停派的（要重新想个做法，想到再派下来）---" -ForegroundColor DarkGray
+# 2026-11-10：arbiter 到 critical 会停派并写 escalate.jsonl；这里把它们摆出来，等人或大脑接手。
+$esc = Join-Path $Track 'escalate.jsonl'
+if (Test-Path $esc) {
+    $lines = @(Get-Content $esc -Encoding UTF8 | Where-Object { $_.Trim() -ne "" })
+    if ($lines.Count -gt 0) {
+        Write-Host ("  已停派 {0} 件（最近 5 条，等新做法）：" -f $lines.Count)
+        $lines | Select-Object -Last 5 | ForEach-Object { Write-Host ("  - " + $_) }
+    } else { Write-Host "  （空）" }
+} else { Write-Host "  （还没有 escalate.jsonl）" }
+
+Write-Host "`n--- 记忆区·工作区（上一轮还握在手里的，必读；细节再看 track\workspace.json）---" -ForegroundColor DarkGray
+# 2026-11-10 用户：「让他读就行了，这个是他环的一部分，这个是必跑的」。
+# 工作区是环上一轮握在手里的那几件，开机不读就等于每轮从零开始。
+$ws = Join-Path $Track 'workspace.json'
+if (Test-Path $ws) {
+    try {
+        $w = Get-Content $ws -Encoding UTF8 -Raw | ConvertFrom-Json
+        if ($w.items -and $w.items.Count -gt 0) {
+            Write-Host ("  第 {0} 轮握着 {1}/{2} 件：" -f $w.round, $w.items.Count, $w.cap)
+            foreach ($it in $w.items) { Write-Host ("  - {0}（握着 {1} 轮，{2}）" -f $it.id, $it.held_rounds, $it.kind) }
+        } else { Write-Host "  （空：上一轮没有东西留在手上）" }
+    } catch { Write-Host "（workspace.json 读不动）" -ForegroundColor Yellow }
+} else { Write-Host "  （还没有 workspace.json：mind 没跑过）" -ForegroundColor Yellow }
+
 Write-Host "`n--- 工作层（顶部指路块 + 最近 12 条）---" -ForegroundColor DarkGray
-# 2026-11-08: 原来只读 -Tail 12（最新条目），于是挂在文件顶部的「动手前先查三处」永远读不到——
-# 检查器还说“能看到”，那是假验证。现在头部与末尾都读。
 if (Test-Path $work) {
     Get-Content $work -Encoding UTF8 -TotalCount 18
     Write-Host "  ......" -ForegroundColor DarkGray

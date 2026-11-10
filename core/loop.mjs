@@ -28,6 +28,7 @@ function arg(name, dflt) {
 
 const name = arg('--name', '')
 const every = Number(arg('--every', '60'))
+const cell = String(arg('--cell', '0'))
 const sep = process.argv.indexOf('--')
 if (!name || !(every > 0) || sep < 0) {
   console.error('usage: node core/loop.mjs --name <n> --every <sec> -- <cmd...>')
@@ -103,6 +104,8 @@ if (process.argv.includes('--once')) {
 
 while (!stopped) {
   const started = Date.now()
+  let childStatus = null
+  let timedOut = false
   try {
     // 2026-11-08: spawnSync BLOCKS. If the child hangs, this loop hangs with it, the lock
     // stays held, and nothing can take over -- the chain freezes and the heartbeat stops
@@ -110,11 +113,23 @@ while (!stopped) {
     // So every round gets a deadline: longer than any honest round, shorter than patience.
     const timeoutMs = Math.min(120000, Math.max(30000, every * 1000 * 4))
     const r = spawnSync(cmd[0], cmd.slice(1), { stdio: 'ignore', timeout: timeoutMs })
+    childStatus = r.status
     if (r.error && r.error.code === 'ETIMEDOUT') {
+      timedOut = true
       console.error(`[loop ${name}] round exceeded ${timeoutMs}ms, killed the child and continuing`)
     }
   } catch { /* a single failed round must not kill the loop */ }
   const spent = Date.now() - started
+  // 2026-11-10 用户：「让他们自己先管，以他们为标准」——节拍由它自己报，不靠外面从总线倒推。
+  // 每轮写一份自述：我该多久一次、这次实际多久、有没有超时/失败。中枢只聚合，不再替它判。
+  // 2026-11-10 用户：「这不就是转接器吗？它自己转出来之后再转我的信号就行」。
+  // 所以不另立数据文件：正常不报（恒定流由脑干吸收），只有迟到/超时/失败才发一条 pace 信号。
+  const lateMs = Math.max(0, spent - every * 1000)
+  if (cell !== '0' && (lateMs > 0 || timedOut || (childStatus !== null && childStatus !== 0))) {
+    try {
+      spawnSync(process.execPath, [join(ROOT, 'core', 'bus.mjs'), 'emit', cell, '4', timedOut ? '2' : '1', String(lateMs), `pace:${every}/${spent}/${childStatus}`], { stdio: 'ignore' })
+    } catch { /* 上报失败不影响循环 */ }
+  }
   const wait = Math.max(1000, every * 1000 - spent)
   // sleep without a busy loop
   const until = Date.now() + wait

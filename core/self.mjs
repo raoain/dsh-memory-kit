@@ -83,13 +83,21 @@ for (const s of all) {
 }
 const win = Object.values(buckets).flatMap((arr) => arr.slice(-PER_SRC))
 const now = profile(win)
+// 2026-11-10：基线只能从正常态学（state 0/3）。warn/fail 永不参与，否则一直坏着的器官会把
+// 故障学成"常态"，等于把病登记成健康。所以校准用 winNormal，比对仍用 win（比对要看全部）。
+const winNormal = win.filter((s) => Number(s.state) === 0 || Number(s.state) === 3)
+const nowNormal = profile(winNormal)
 
 const calibrate = process.argv.includes('--calibrate')
 const dry = process.argv.includes('--dry')
 
 if (calibrate) {
   // 自己的文件自己写全（2026-11-08 拆成 self-baseline.json 后，这里只碰自己的文件，再不会碰静态自体）
-  const out = { at: new Date().toISOString(), window: WINDOW, perSrc: PER_SRC, profile: now }
+  // 校准写的是 nowNormal（只含 state 0/3），比对仍用 now
+  // bySrc 要用全部行（键齐，免疫才能对得上 registry）；byState 只用正常态（0/3），
+  // 否则一直坏着的器官会把故障学成"常态"。
+  const cal = { n: nowNormal.n, bySrc: now.bySrc, byState: nowNormal.byState, rushMax: now.rushMax }
+  const out = { at: new Date().toISOString(), window: WINDOW, perSrc: PER_SRC, profile: cal, normalOnly: true, skipped: win.length - winNormal.length }
   writeFileSync(BASE, JSON.stringify(out, null, 2), 'utf8')
   console.log(JSON.stringify({ calibrated: true, file: 'track/self-baseline.json', profile: now }))
   process.exit(0)
@@ -112,12 +120,17 @@ if (!base) {
 const srcDiff = relDiff(now.bySrc, base.bySrc)
 const stateDiff = relDiff(now.byState, base.byState)
 const diff = Math.max(srcDiff, stateDiff)
+// 2026-11-10：比对也用正常态。基线只从 state 0/3 学，比对若把 warn/fail 算进去，
+// 一有告警就必然判"不像我"——异常该由别的器官判，self 只答"常态还是不是同一个我"。
+const srcDiffN = relDiff(now.bySrc, base.bySrc)
+const stateDiffN = relDiff(nowNormal.byState, base.byState)
+const diffNormal = Math.max(srcDiffN, stateDiffN)
 
 let state = 0
 let why = 'looks-like-me'
 if (now.n < base.n * SILENCE_RATIO) { state = 2; why = 'silence' }
-else if (diff >= DRIFT_FAIL) { state = 2; why = 'not-me' }
-else if (diff >= DRIFT_WARN) { state = 1; why = 'drifting' }
+else if (diffNormal >= DRIFT_FAIL) { state = 2; why = 'not-me' }
+else if (diffNormal >= DRIFT_WARN) { state = 1; why = 'drifting' }
 
 const rush = Number((SPEC.map?.state_to_rush || { 0: 0, 1: 1, 2: 2, 3: 1 })[String(state)] ?? 1)
 const evid = `self:${why}:${diff.toFixed(2)}`

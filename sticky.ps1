@@ -11,9 +11,12 @@ param(
     [string]$Promise,
     [string]$Next,
     [switch]$Show,
-    [string]$Root = $Notebook
+    [string]$Root = ''
 )
 . (Join-Path $PSScriptRoot '_root.ps1')
+# 2026-11-09 修：参数默认值在绑定阶段求值，那时 $Notebook 还不存在 → 空路径。
+# _root.ps1 会把空 $Root 填成仓库根，所以按「调用者有没有显式传」判断，不能看空不空。
+if (-not $PSBoundParameters.ContainsKey('Root')) { $Root = $Notebook }
 
 $ErrorActionPreference = 'Stop'
 $work = Join-Path $Root '1-工作.md'

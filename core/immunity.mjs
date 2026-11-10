@@ -216,12 +216,16 @@ const CHECKS = {
     if (!o || !o.snapAt) return { ok: false, detail: zh('imm.selfset.bad') }
     const days = (Date.now() - new Date(o.snapAt).getTime()) / 86400000
     const max = Number(cfg.max_age_days || 8)
-    // 偏离多少也一并判（原先由 verify 自己跑 baseline.ps1 数「偏离 N 项」）
+    // 偏离多少也一并判。只认 SIG 机器码（2026-11-09 收掉最后一处解析人话）：
+    // SIG {"state":N,"counts":[偏离项数, 指标数]}；读不到才退回 null，不去猜正文。
     let drift = null
     try {
       const out = execFileSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', join(ROOT, cfg.snapshot_cmd || 'baseline.ps1')], { cwd: ROOT, encoding: 'utf8' })
-      const mm = String(out).match(/偏离\s*(\d+)\s*项/)
-      if (mm) drift = Number(mm[1])
+      const sig = String(out).split(/\r?\n/).filter((l) => l.trim().startsWith('SIG ')).pop()
+      if (sig) {
+        const parsed = JSON.parse(sig.slice(4))
+        if (Array.isArray(parsed.counts)) drift = Number(parsed.counts[0])
+      }
     } catch { drift = null }
     const maxDrift = Number(cfg.max_drift || 5)
     const bad = days > max || (drift !== null && drift > maxDrift)
@@ -396,6 +400,17 @@ const CHECKS = {
       } catch { n = null }
     }
     return { ok: n === 0, detail: n === null ? zh('imm.lint.unreadable') : zh('imm.lint.n', n, pieces || Object.keys(rules).length) }
+  },
+  // 2026-11-10 用户：「自己他妈自己转，怎么延误都不知道，根本就没适配我们的系统」——
+  // 有节律的器官必须各自带一个 loop 且带 --cell（异常时才知道是谁发的 pace 信号）；
+  // 或者在 sweep 的步骤表里被链式驱动。两者都没有 = 没人管它的节律 = 没适配。
+  'organ-pace-wired': () => {
+    const vbs = readText('start-timers.vbs') || ''
+    const sweepSrc = readText('core/sweep.mjs') || ''
+    const looped = new Set([...vbs.matchAll(/--name (\w+) --every \d+ --cell \d+/g)].map((m) => m[1]))
+    const cells = Object.entries(REG.cells || {}).filter(([, c]) => c.path && Number(c.every || 0) > 0)
+    const missing = cells.filter(([, c]) => !looped.has(String(c.id)) && !sweepSrc.includes(String(c.id) + '.mjs')).map(([k, c]) => k + ':' + c.id)
+    return { ok: missing.length === 0, detail: missing.length ? zh('imm.pace.missing', missing.join(', '), cells.length) : zh('imm.pace.ok', cells.length) }
   },
   'rules-coverable': () => {    const R = JSON.parse(readText('core/rules.json') || '{"rules":[]}')
     const sigs = recentSignals()

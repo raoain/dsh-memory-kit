@@ -488,6 +488,21 @@
       "covers": [
         "liveness"
       ]
+    },
+    {
+      "id": "organ-pace-wired",
+      "owner": "coo-day1",
+      "failure": "a cadence organ has neither its own loop nor a place in the sweep chain",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "organ-pace-wired"
+      },
+      "live_check": "organ-pace-wired",
+      "tier": "reflex",
+      "docs": "spec.organ_intake",
+      "covers": [
+        "organ_intake"
+      ]
     }
   ]
 }

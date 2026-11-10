@@ -27,11 +27,53 @@ if ($Evid) {
             if (Test-Path (Join-Path $Root $mm.Groups[1].Value)) { $EvidCheck = $true }
         }
     }
+    # 2026-11-10（用户纠正：证要转成数字/英文，不是放宽检查器去收中文）：
+    # 页名用 dir+prefix 指（page:notebook/0- 或 page:notebook/0-:26），全程 ASCII，可定位、可数行。
+    if (-not $EvidCheck -and $Evid -match 'page:\s*([A-Za-z0-9_\-/]+)/([A-Za-z0-9_\-]+)(?::(?:L)?(\d+))?') {
+        $eDir = $Matches[1]; $ePfx = $Matches[2]; $eLine = $Matches[3]
+        $eDirPath = Join-Path $Root $eDir
+        if (Test-Path $eDirPath) {
+            $eHit = @(Get-ChildItem $eDirPath -Filter ("{0}*" -f $ePfx) -File -ErrorAction SilentlyContinue)
+            if ($eHit.Count -gt 0) {
+                $EvidCheck = $true
+                if ($eLine) {
+                    $eCount = @(Get-Content $eHit[0].FullName -Encoding UTF8).Count
+                    if ([int]$eLine -gt $eCount) { $EvidCheck = $false }
+                }
+            }
+        }
+    }
+    # 2026-11-10 第二版（用户：遵守标准然后上个翻译层）：页号是数字（core/pages.json，纯 ASCII），
+    # 页名（中文）放翻译层 core/locales/zh.json 的 page.<id>。程序只认数字，中文不进口。
+    if (-not $EvidCheck -and $Evid -match 'page:\s*(\d{3,})(?::(?:L)?(\d+))?') {
+        $eId = [int]$Matches[1]; $eLine2 = $Matches[2]
+        $pagesPath = Join-Path $Root 'core\pages.json'
+        if (Test-Path $pagesPath) {
+            $pg = [IO.File]::ReadAllText($pagesPath, [Text.Encoding]::UTF8) | ConvertFrom-Json
+            if (@($pg.ids) -contains $eId) {
+                $zhPath2 = Join-Path $Root 'core\locales\zh.json'
+                if (Test-Path $zhPath2) {
+                    $zhObj = [IO.File]::ReadAllText($zhPath2, [Text.Encoding]::UTF8) | ConvertFrom-Json
+                    $rel = $zhObj.("page.$eId")
+                    if ($rel) {
+                        $full = Join-Path $Root $rel
+                        if (Test-Path $full) {
+                            $EvidCheck = $true
+                            if ($eLine2) {
+                                $cnt2 = @(Get-Content $full -Encoding UTF8).Count
+                                if ([int]$eLine2 -gt $cnt2) { $EvidCheck = $false }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     if (-not $EvidCheck) {
         Write-Host ''
         Write-Host '拒绝写入：证不可核。' -ForegroundColor Red
         Write-Host ('  现在给的是：' + $Evid) -ForegroundColor Yellow
-        Write-Host '  可核形式：verify 46 项 OK 43 ／ notebook\0-核心.md ／ 第 12-14 行' -ForegroundColor Yellow
+        Write-Host '  可核形式（只用数字与英文）：verify 50 项 OK 50 ／ page:101 ／ page:101:136 ／ page:notebook/0-:26 ｜ 第 12-14 行' -ForegroundColor Yellow
         exit 1
     }
 }

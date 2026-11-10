@@ -1,0 +1,304 @@
+{
+  "at": "2026-11-10T05:06:54.190Z",
+  "rounds": 50,
+  "organs": {
+    "5": {
+      "organ": 5,
+      "id": "backup",
+      "seen": 36,
+      "first": "2026-11-09T05:19:35.735Z",
+      "last": "2026-11-10T01:59:42.638Z",
+      "cleared": 1,
+      "clears": [
+        {
+          "from": "2026-11-09T05:19:35.735Z",
+          "to": "2026-11-10T02:03:30.366Z",
+          "how": "left-the-plan",
+          "why": "cleared after a dispatch (rerun-backup) at 2026-11-10T01:59:42.639Z",
+          "badKind": "silent",
+          "action": {
+            "at": "2026-11-10T01:59:42.639Z",
+            "reason": "rerun-backup",
+            "from": "20"
+          }
+        }
+      ],
+      "wasBad": false,
+      "badSince": null,
+      "badKind": null,
+      "kinds": {
+        "broken": 10,
+        "silent": 26
+      },
+      "buckets": {
+        "mechanical": 36
+      },
+      "lastClear": {
+        "from": "2026-11-09T05:19:35.735Z",
+        "to": "2026-11-10T02:03:30.366Z",
+        "how": "left-the-plan",
+        "why": "cleared after a dispatch (rerun-backup) at 2026-11-10T01:59:42.639Z",
+        "badKind": "silent",
+        "action": {
+          "at": "2026-11-10T01:59:42.639Z",
+          "reason": "rerun-backup",
+          "from": "20"
+        }
+      },
+      "lastGoodAction": {
+        "at": "2026-11-10T01:59:42.639Z",
+        "reason": "rerun-backup",
+        "from": "20"
+      }
+    },
+    "8": {
+      "organ": 8,
+      "id": "self",
+      "seen": 34,
+      "first": "2026-11-09T05:19:35.735Z",
+      "last": "2026-11-10T01:17:41.267Z",
+      "cleared": 1,
+      "clears": [
+        {
+          "from": "2026-11-09T05:19:35.735Z",
+          "to": "2026-11-10T01:47:41.143Z",
+          "how": "left-the-plan",
+          "why": "cleared without any dispatch recorded between 2026-11-09T05:19:35.735Z and 2026-11-10T01:47:41.143Z (nobody did anything we can name)",
+          "badKind": "broken",
+          "action": null
+        }
+      ],
+      "wasBad": false,
+      "badSince": null,
+      "badKind": null,
+      "kinds": {
+        "broken": 33,
+        "silent": 1
+      },
+      "buckets": {
+        "needs-understanding": 34
+      },
+      "lastClear": {
+        "from": "2026-11-09T05:19:35.735Z",
+        "to": "2026-11-10T01:47:41.143Z",
+        "how": "left-the-plan",
+        "why": "cleared without any dispatch recorded between 2026-11-09T05:19:35.735Z and 2026-11-10T01:47:41.143Z (nobody did anything we can name)",
+        "badKind": "broken",
+        "action": null
+      },
+      "lastGoodAction": null
+    },
+    "9": {
+      "organ": 9,
+      "id": "pulse",
+      "seen": 34,
+      "first": "2026-11-09T05:19:35.735Z",
+      "last": "2026-11-10T01:17:41.267Z",
+      "cleared": 1,
+      "clears": [
+        {
+          "from": "2026-11-09T05:19:35.735Z",
+          "to": "2026-11-10T01:47:41.143Z",
+          "how": "left-the-plan",
+          "why": "cleared without any dispatch recorded between 2026-11-09T05:19:35.735Z and 2026-11-10T01:47:41.143Z (nobody did anything we can name)",
+          "badKind": "broken",
+          "action": null
+        }
+      ],
+      "wasBad": false,
+      "badSince": null,
+      "badKind": null,
+      "kinds": {
+        "broken": 33,
+        "silent": 1
+      },
+      "buckets": {
+        "needs-understanding": 34
+      },
+      "lastClear": {
+        "from": "2026-11-09T05:19:35.735Z",
+        "to": "2026-11-10T01:47:41.143Z",
+        "how": "left-the-plan",
+        "why": "cleared without any dispatch recorded between 2026-11-09T05:19:35.735Z and 2026-11-10T01:47:41.143Z (nobody did anything we can name)",
+        "badKind": "broken",
+        "action": null
+      },
+      "lastGoodAction": null
+    },
+    "16": {
+      "organ": 16,
+      "id": "align",
+      "seen": 39,
+      "first": "2026-11-09T05:19:35.735Z",
+      "last": "2026-11-10T02:35:42.122Z",
+      "cleared": 1,
+      "clears": [
+        {
+          "from": "2026-11-09T05:19:35.735Z",
+          "to": "2026-11-10T02:36:01.825Z",
+          "how": "left-the-plan",
+          "why": "cleared after a dispatch (realign-pins) at 2026-11-10T02:33:30.209Z",
+          "badKind": "silent",
+          "action": {
+            "at": "2026-11-10T02:33:30.209Z",
+            "reason": "realign-pins",
+            "from": "20"
+          }
+        }
+      ],
+      "wasBad": false,
+      "badSince": null,
+      "badKind": null,
+      "kinds": {
+        "broken": 7,
+        "silent": 32
+      },
+      "buckets": {
+        "mechanical": 38,
+        "needs-understanding": 1
+      },
+      "lastClear": {
+        "from": "2026-11-09T05:19:35.735Z",
+        "to": "2026-11-10T02:36:01.825Z",
+        "how": "left-the-plan",
+        "why": "cleared after a dispatch (realign-pins) at 2026-11-10T02:33:30.209Z",
+        "badKind": "silent",
+        "action": {
+          "at": "2026-11-10T02:33:30.209Z",
+          "reason": "realign-pins",
+          "from": "20"
+        }
+      },
+      "lastGoodAction": {
+        "at": "2026-11-10T02:33:30.209Z",
+        "reason": "realign-pins",
+        "from": "20"
+      }
+    },
+    "17": {
+      "organ": 17,
+      "id": "immunity",
+      "seen": 36,
+      "first": "2026-11-09T05:19:35.735Z",
+      "last": "2026-11-10T02:33:30.208Z",
+      "cleared": 2,
+      "clears": [
+        {
+          "from": "2026-11-09T05:19:35.735Z",
+          "to": "2026-11-10T01:47:41.143Z",
+          "how": "left-the-plan",
+          "why": "cleared after a dispatch (rerun-immunity) at 2026-11-10T01:17:41.295Z",
+          "badKind": "broken",
+          "action": {
+            "at": "2026-11-10T01:17:41.295Z",
+            "reason": "rerun-immunity",
+            "from": "20"
+          }
+        },
+        {
+          "from": "2026-11-10T02:03:30.366Z",
+          "to": "2026-11-10T02:35:42.122Z",
+          "how": "left-the-plan",
+          "why": "cleared without any dispatch recorded between 2026-11-10T02:03:30.366Z and 2026-11-10T02:35:42.122Z (nobody did anything we can name)",
+          "badKind": "late",
+          "action": null
+        }
+      ],
+      "wasBad": false,
+      "badSince": null,
+      "badKind": null,
+      "kinds": {
+        "broken": 33,
+        "silent": 1,
+        "late": 2
+      },
+      "buckets": {
+        "mechanical": 34,
+        "observed": 2
+      },
+      "lastClear": {
+        "from": "2026-11-10T02:03:30.366Z",
+        "to": "2026-11-10T02:35:42.122Z",
+        "how": "left-the-plan",
+        "why": "cleared without any dispatch recorded between 2026-11-10T02:03:30.366Z and 2026-11-10T02:35:42.122Z (nobody did anything we can name)",
+        "badKind": "late",
+        "action": null
+      },
+      "lastGoodAction": null
+    },
+    "18": {
+      "organ": 18,
+      "id": "consolidate",
+      "seen": 43,
+      "first": "2026-11-09T05:19:35.735Z",
+      "last": "2026-11-10T05:03:30.615Z",
+      "cleared": 1,
+      "clears": [
+        {
+          "from": "2026-11-09T05:19:35.735Z",
+          "to": "2026-11-10T02:35:42.122Z",
+          "how": "left-the-plan",
+          "why": "cleared after a dispatch (rerun-consolidate) at 2026-11-10T01:17:41.302Z",
+          "badKind": "late",
+          "action": {
+            "at": "2026-11-10T01:17:41.302Z",
+            "reason": "rerun-consolidate",
+            "from": "20"
+          }
+        }
+      ],
+      "wasBad": true,
+      "badSince": "2026-11-10T04:03:30.489Z",
+      "badKind": "late",
+      "kinds": {
+        "broken": 26,
+        "late": 16,
+        "silent": 1
+      },
+      "buckets": {
+        "mechanical": 27,
+        "observed": 16
+      },
+      "lastClear": {
+        "from": "2026-11-09T05:19:35.735Z",
+        "to": "2026-11-10T02:35:42.122Z",
+        "how": "left-the-plan",
+        "why": "cleared after a dispatch (rerun-consolidate) at 2026-11-10T01:17:41.302Z",
+        "badKind": "late",
+        "action": {
+          "at": "2026-11-10T01:17:41.302Z",
+          "reason": "rerun-consolidate",
+          "from": "20"
+        }
+      },
+      "lastGoodAction": {
+        "at": "2026-11-10T01:17:41.302Z",
+        "reason": "rerun-consolidate",
+        "from": "20"
+      }
+    }
+  },
+  "needsUnderstanding": [
+    {
+      "organ": 8,
+      "id": "self",
+      "seen": 34,
+      "cleared": 1,
+      "needsUnderstanding": 34
+    },
+    {
+      "organ": 9,
+      "id": "pulse",
+      "seen": 34,
+      "cleared": 1,
+      "needsUnderstanding": 34
+    },
+    {
+      "organ": 16,
+      "id": "align",
+      "seen": 39,
+      "cleared": 1,
+      "needsUnderstanding": 1
+    }
+  ]
+}

@@ -54,7 +54,20 @@ const BUS = join(ROOT, 'track', 'bus.jsonl')
 const EVENTS = join(ROOT, 'track', 'events.jsonl')
 const CENTER = join(ROOT, 'track', 'center.json')
 const CURSOR = join(ROOT, 'track', '.consolidate-cursor.json')
-const WINDOW_MIN = 45
+// 环的五步各自的留痕文件（2026-11-09 用户：「依旧加个识别就行」——只识别缺哪步，不判死）
+const STEP_FILES = {
+  judge: join(ROOT, 'track', 'brain.jsonl'),
+  act: join(ROOT, 'track', 'dispatch.jsonl'),
+  readback: join(ROOT, 'track', 'drift-raw.json'),
+}
+// 2026-11-10：放电窗口也以心跳为钟——900 拍 = 45 分钟（3 秒一跳）。
+// 注意这个文件里 spec 的变量叫 SPEC_E（在下面才定义），所以这里直接读一次文件，别引用未定义的 SPEC。
+const TIME_BASE =
+  (JSON.parse(readFileSync(join(ROOT, 'core', 'spec.json'), 'utf8')).expect || {}).time_base ||
+  { interval_ms: 3000, beats: {} }
+const BEAT_MS = Number(TIME_BASE.interval_ms || 3000)
+const WINDOW_MIN = (Number((TIME_BASE.beats || {}).discharge || 900) * BEAT_MS) / 60000
+const STRESS = join(ROOT, 'track', '.stress.json')
 const dry = process.argv.includes('--dry')
 
 // 2026-11-09 事故：center.json 被并发写截成 0 字节，下一次启动 JSON.parse 直接抛错，
@@ -127,6 +140,11 @@ for (const r of rows) {
         transitions++
         events.push({ at: r.at, src, kind, state: st, value: r.value, evid: r.evid, why: 'transition' })
       }
+    }
+    // 器官自己报的节拍异常（loop 在迟到/超时/失败时发 evid=pace:）：收下，判定用它
+    if (String(r.evid || '').indexOf('pace:') === 0) {
+      center.pace = center.pace || {}
+      center.pace[src] = { ts: r.ts, state: st, value: r.value, evid: r.evid }
     }
     if (abnormal) {
       events.push({ at: r.at, src, kind, state: st, value: r.value, evid: r.evid, why: 'warn' })
@@ -267,7 +285,7 @@ for (const b of breaks) {
 // 2026-11-09 用户：「他自己判，他也解决不了啊，得这个传到中枢再上传到大脑去解决问题」。
 // 所以判在中枢这里做：读 drift 交来的原始测量（track/drift-raw.json），判哪些算事、
 // 多严重、要不要升级，然后**上传一条**（topic=center.verdict）。器官本身不再判。
-const verdict = { at: new Date().toISOString(), ok: 0, issues: [] }
+const verdict = { at: new Date().toISOString(), ok: 0, issues: [], blind: [] }
 const RAW = join(ROOT, 'track', 'drift-raw.json')
 if (existsSync(RAW)) {
   try {
@@ -295,16 +313,40 @@ if (existsSync(RAW)) {
       if (row.what === 'heartbeat') continue // 心脏不走下面那套视觉判据
       const every = row.organ ? Number((reg[String(row.organ)] || {}).every || 0) : 0
       const limitMs = (every > 0 ? every * 2 : 60) * 60000
+      // 先把「器官自己报的异常」和「中枢自己的没反应」判掉：这两条不依赖 drift 的样本数。
+      const seen0 = Math.max(Number(row.last || 0), Number((center.lastSeen || {})[String(row.organ)] || 0))
+      const silent0 = row.organ > 0 && (!seen0 || nowMs - seen0 > limitMs)
+      const pace0 = (center.pace || {})[String(row.organ)]
+      const paceFresh0 = pace0 && nowMs - Number(pace0.ts || 0) < limitMs
+      if (!silent0 && !paceFresh0 && row.insufficient_samples) {
+        // 2026-11-10 考试题 T1：样本不足 ≠ 不坏，也 ≠ 好。单列成一类（blind），
+        // 不进 issues 也不当 ok——否则"窗口装不下"会被当成"一切正常"（绿灯因为瞎了）。
+        row.flag = 'insufficient'
+        row.tier = 0
+        verdict.blind.push({ what: row.what, organ: row.organ, samples: row.samples, window_ms: row.window_ms })
+        continue
+      }
       // "最后一次见到"以中枢自己的 center.lastSeen 为准（单调、放电不影响）；
       // drift 交来的 last 只是它这轮读到的行，活总线放电后会偏旧。
       const seen = Math.max(Number(row.last || 0), Number((center.lastSeen || {})[String(row.organ)] || 0))
       const silent = row.organ > 0 && (!seen || nowMs - seen > limitMs)
+      // 2026-11-10 判据收口：迟到/慢由**器官自己报**（loop 在异常时发 pace 信号），中枢不再从
+      // 总线上数格子倒推（那套会被窗口和停机搅乱，今天 pulse 就出现"总线说好、plan 说坏"）。
+      // 中枢只保留自己那两条：never（从没报到，只靠 lastSeen）与 silent（超过 2×every 没报）。
       let kind = null
+      const pace = (center.pace || {})[String(row.organ)]
+      const paceFresh = pace && nowMs - Number(pace.ts || 0) < limitMs
       if (silent) kind = 'silent'
-      else if ((row.bp || 0) >= th.state2_bp) kind = 'broken'
-      else if ((row.bp || 0) >= th.state1_bp) kind = 'late'
-      if (!kind) { verdict.ok++; row.flag = 'ok'; row.tier = 0; continue }
-      const tier = kind === 'silent' ? 2 : (row.bp >= th.state2_bp ? 2 : 1)
+      else if (paceFresh) kind = Number(pace.state) >= 2 ? 'broken' : 'late'
+      if (!kind) {
+        verdict.ok++
+        row.flag = 'ok'
+        row.tier = 0
+        // drift 的窗口读数只作参考（bp 仍挂回数据），不再参与判定
+        row.ref_bp = row.bp
+        continue
+      }
+      const tier = kind === 'silent' ? 2 : Number(pace && pace.state) >= 2 ? 2 : 1
       // 2026-11-09 用户：「检查出问题，就应该把这个数据标上标志，然后上传」。
       // 所以判出来的结论直接标回那条数据本身，上传的是带标志的数据，不是另开一张清单。
       // 加急要"带上加急的数据"：把该器官最近这段的曲线一起挂上，不只是一个当前值。
@@ -314,12 +356,41 @@ if (existsSync(RAW)) {
         const m = (h.rows || []).find((x) => Number(x.organ) === Number(row.organ))
         return m ? Number(m.bp) : null
       })
-      verdict.issues.push({ what: row.what, organ: row.organ, kind, bp: row.bp, tier, series })
+      // 2026-11-10 用户：「加急后面再加一档，致死上面还有一个加加急」。
+      // 连续被判坏的次数决定 rush：1 次=1，到 urgent 阈值=2，到两倍=3（停手、等人接手）。
+      // 连续计数存 track\.stress.json；转好就清零。
+      const stress = readJsonSafe(STRESS, {})
+      const prev = stress[String(row.organ)] || { count: 0, kind: null }
+      const streak = prev.kind === kind ? Number(prev.count || 0) + 1 : 1
+      const urgentAt = Number((SPEC_E && SPEC_E.drift && SPEC_E.drift.tier_urgent_after) || 20)
+      const criticalAt = Number((SPEC_E && SPEC_E.drift && SPEC_E.drift.tier_critical_after) || urgentAt * 2)
+      const rushLevel = streak >= criticalAt ? 3 : streak >= urgentAt ? 2 : 1
+      stress[String(row.organ)] = { count: streak, kind, at: new Date().toISOString() }
+      verdict.stress = stress
+      verdict.issues.push({ what: row.what, organ: row.organ, kind, bp: row.bp, tier, rush: rushLevel, count: streak, series })
+    }
+    // 2026-11-10 用户：「超过 80% 的玩意都是长时间停的，就代表你关机了……但至少证明他现在是好的」。
+    // 整机停机（没身体、关机/睡眠）不是器官坏了：一个以上 80% 的器官同时"缺拍"就是这个形态。
+    // 判成 shutdown：issues 留着做记录，但不拉 state——它醒来还按点上报，本身就是好的证据。
+    const judged = (raw.rows || []).filter((r) => r.organ > 0 && !r.insufficient_samples)
+    const stopped = judged.filter((r) => r.flag === 'silent')
+    const ratio = judged.length ? stopped.length / judged.length : 0
+    if (judged.length >= 3 && ratio >= 0.8) {
+      verdict.mode = 'shutdown'
+      verdict.shutdown = { ratio: Number(ratio.toFixed(2)), organs: stopped.length, of: judged.length }
+      verdict.state = 0
+      verdict.shutdownIssues = verdict.issues.slice()
+      verdict.issues = []
+    }
+    // 转好的器官清零连续计数（断了就不再算「反复」）
+    if (verdict.stress) {
+      const bad = new Set(verdict.issues.map((i) => String(i.organ)))
+      for (const k of Object.keys(verdict.stress)) if (!bad.has(k)) delete verdict.stress[k]
     }
     verdict.state = verdict.issues.length === 0 ? 0 : (verdict.issues.some((i) => i.tier === 2) ? 2 : 1)
     // 心脏停摆时整条链都没意义，直接拉满：state 2、tier 2。
     if (verdict.heart && !verdict.heart.ok) verdict.state = 2
-    verdict.evid = `center:${verdict.ok}ok/${verdict.issues.length}issues${verdict.heart && verdict.heart.ok ? '' : '/HEART-DOWN'}`
+    verdict.evid = `center:${verdict.ok}ok/${verdict.issues.length}issues/${verdict.blind.length}blind${verdict.heart && verdict.heart.ok ? '' : '/HEART-DOWN'}`
     // 2026-11-09 用户：「建中枢就是为了有一手数据……自己解决不了直接再把那个数据给大脑，
     // 让大脑自己来判定，这个被中间拦了那你数据呢？」——所以上传时**原始测量一起带上**，
     // 中枢的看法（issues）只是附注，不能替代数据。上面拿到的是 raw，不是我的结论。
@@ -362,6 +433,22 @@ if (!dry) {
     const sizeNow = existsSync(BUS) ? statSync(BUS).size : 0
     if (sizeNow === busSizeBefore) {
       copyFileSync(BUS, join(ROOT, 'track', '.bus.before-discharge.jsonl'))
+      // 2026-11-10 考试题 T1：放电丢掉的行必须进当天归档，否则任何超过 45 分钟的度量窗口
+      // 在今天都拿不到样本（archive 里只有昨天及更早）。按每行自己的日期分文件追加。
+      const droppedRows = rows.filter((r) => r.ts < cutoff)
+      if (droppedRows.length) {
+        const archDir = join(ROOT, 'track', 'archive')
+        mkdirSync(archDir, { recursive: true })
+        const byDay = new Map()
+        for (const r of droppedRows) {
+          const day = String(r.at || '').slice(0, 10).replace(/-/g, '') || new Date().toISOString().slice(0, 10).replace(/-/g, '')
+          if (!byDay.has(day)) byDay.set(day, [])
+          byDay.get(day).push(r.raw)
+        }
+        for (const [day, lines] of byDay) {
+          appendFileSync(join(archDir, `bus-${day}.jsonl`), lines.join('\n') + '\n', 'utf8')
+        }
+      }
       writeFileSync(BUS, keep.length ? keep.join('\n') + '\n' : '', 'utf8')
       // 2026-11-09 用户：「不应该改的是维护这个连续性和断了上报吗？」
       // 对——要维护的不是"放电成功"这个动作，是**行数和连续性**。放电完立刻读回比对：
@@ -386,6 +473,46 @@ if (!dry) {
   }
   // 连续性记账要在放电之后写：放电块的结论（有没有丢行、跳过几次）就是这一环的状态。
   if (chain) center.chain = { ...chain, at: center.lastAt, skipStreak }
+  // 环的五步识别（2026-11-09 用户：「依旧加个识别就行」）：只看每步的留痕在本轮窗口内有没有更新。
+  // 缺了只记一条 chain:missing:<步骤>，不判死、不改 state。
+  try {
+    if (process.env.COO_DEBUG) console.error('enter step-recognize; lastAt=', center.lastAt, 'newLines=', newLines)
+    const since = Number(center.lastAt ? new Date(center.lastAt).getTime() : 0) - WINDOW_MIN * 60000
+    const missing = []
+    for (const [name, p] of Object.entries(STEP_FILES)) {
+      let at = 0
+      if (existsSync(p)) {
+        try {
+          const raw = readFileSync(p, 'utf8').trim()
+          const last = raw.split(/\r?\n/).filter(Boolean).pop()
+          const obj = JSON.parse(last)
+          at = Number(obj && (obj.ts || new Date(obj.at || 0).getTime())) || 0
+        } catch { at = 0 }
+      }
+      if (!at || at < since) missing.push(name)
+    }
+    if (Number(summary.newLines || 0) === 0) missing.push('trace') // 本轮总线上没有新增行
+    if (missing.length) {
+      center.chain = { ...(center.chain || {}), missing, missingAt: center.lastAt }
+      emit(SELF, 4, 0, missing.length, `chain:missing:${missing.join(',')}`, { rush: 0, topic: 'chain.missing' })
+    } else {
+      // 没有缺口也记一笔空数组：让「识别跑过」这件事本身可查
+      center.chain = { ...(center.chain || {}), missing: [], missingAt: center.lastAt }
+    }
+  } catch (err) { if (process.env.COO_DEBUG) console.error('step-recognize failed:', err.message) }
+  // 2026-11-09 用户：「数核是脚本环才是动起来的那个」——轮号只有一个出处：mind 写的 nucleus.cur.round。
+  // 中枢只做镜像（round_source 写明出处），不自己计数，免得两个计数器分叉。
+  try {
+    const nucP = join(ROOT, 'track', 'mind', 'nucleus.json')
+    if (existsSync(nucP)) {
+      const nuc = JSON.parse(readFileSync(nucP, 'utf8'))
+      const r = Number(nuc && nuc.cur && nuc.cur.round)
+      if (Number.isFinite(r)) {
+        center.round = r
+        center.round_source = 'track/mind/nucleus.json#cur.round'
+      }
+    }
+  } catch { /* 拿不到就不写，不猜 */ }
   writeJsonAtomic(CENTER, center)
   emit(SELF, 4, 0, discharged, `consolidate:b${beats}/e${events.length}/d${discharged}`, { rush: 0 })
   // 中枢的判决上传：一条信号说清"这轮有几句要处理、多严重"。

@@ -76,10 +76,11 @@
     "11": {
       "id": "sense-hub",
       "kind": 1,
-      "path": null,
+      "path": "core/sense.mjs",
       "every": 0,
       "enabled": false,
-      "module": "sense"
+      "module": "sense",
+      "note": "capped 2026-11-10: implementation core/sense.mjs is in place, but there is no input source yet; flip enabled to true when something real feeds it"
     },
     "12": {
       "id": "effect-hub",
@@ -92,9 +93,9 @@
     "13": {
       "id": "memHi-hub",
       "kind": 1,
-      "path": null,
+      "path": "core/hippocampus.mjs",
       "every": 0,
-      "enabled": false,
+      "enabled": true,
       "module": "memHi"
     },
     "14": {
@@ -228,7 +229,7 @@
     }
   },
   "classes": {
-    "note": "Two groups: the cell and its body. logic-core (1-9) is ONE cell: its parts are organelles, separately named but belonging to the same individual. body (10-13) is the mechanical body waiting for the core to take it over.",
+    "note": "Two groups: the cell and its body. logic-core is ONE cell; its sub areas are named zones (brainstem = 15+18+20, powers separated, ONE function). body (10-13) is the mechanical body waiting for the core to take it over.",
     "logic-core": {
       "members": [
         "1",
@@ -255,20 +256,29 @@
         ],
         "selfcheck": [
           "1",
-          "2"
-        ],
-        "framework": [
-          "3",
-          "4",
-          "5",
-          "6",
+          "2",
           "8",
           "9",
+          "19",
+          "17"
+        ],
+        "os": [
+          "4",
+          "5",
           "14",
+          "16"
+        ],
+        "tools": [
+          "3",
+          "6"
+        ],
+        "brainstem": [
           "15",
-          "16",
-          "17",
-          "18"
+          "18",
+          "20"
+        ],
+        "thinking": [
+          "21"
         ]
       },
       "area": "internal"
@@ -290,13 +300,13 @@
         "effect": [
           "12"
         ],
-        "memHi": [
+        "memory": [
           "13"
         ]
       },
       "area": "limb"
     },
-    "area_note": "two top-level areas: internal (organs that keep the body running) and limb (parts that act on or read the outside world; all slots are still empty)"
+    "area_note": "two levels: area (internal / limb) then sub zones. logic-core sub: center 7 (reflex) / selfcheck 1+2+8+9+17 (verify, pin, self, pulse, immunity) / os 4+5+6+14+16 (watchdog, backup, log, bus-rotate, align: what the whole thing needs to stay running) / tools 3 (status: called by a person, changes nothing) / brainstem 15+18+20. body sub: power 10, sense 11, effect 12, memory 13."
   },
   "roles_note": "brainstem = cells 15 + 18 + 20 (three organs, powers separated, ONE overall function): 15 connects and measures; 18 aggregates, applies thresholds and uploads; 20 takes the raw rows and judges once more on its own, then ranks. This is the EARLIEST brain: it only maintains and reports, nothing more. The total brain sits above it and is not built yet, which is why this layer can only be called the brainstem. A biological brainstem fuses these into one act; silicon splits them into three steps ON PURPOSE -- split so each step is easy to change or replace, and the completion condition then has to be written down explicitly. Fusion is possible and left to later generations. Separation of powers, not separation of systems. Everything here is mechanical: measure, threshold, dispatch what has a known remedy, upload what does not. Nothing in this layer tries to understand anything."
 }

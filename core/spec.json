@@ -23,7 +23,8 @@
     "0": "cosmetic",
     "1": "decays",
     "2": "irreversible",
-    "note": "priority = how bad it gets if nobody handles it. 2 means it is already too late to undo."
+    "3": "critical: repeated past the urgent threshold, stop retrying and wait for a handler",
+    "note": "priority = how bad it gets if nobody handles it. 2 means it is already too late to undo; 3 means it keeps coming back and retrying only makes noise"
   },
   "signal": {
     "required": [
@@ -126,7 +127,21 @@
       "dedup_window_sec": 600,
       "dedup_note": "the same condition is held (not re-reported) until this many seconds pass, the state changes, or it is the first sighting",
       "tier_urgent_after": 20,
-      "tier_note": "normal below tier_urgent_after repeats (17 was normal); urgent from tier_urgent_after (20+); lethal is not a count -- it means a whole region is down or the failure spans regions"
+      "tier_note": "normal below tier_urgent_after repeats (17 was normal); urgent from tier_urgent_after (20+); lethal is not a count -- it means a whole region is down or the failure spans regions",
+      "tier_critical_after": 40,
+      "note_after": "keep tier_urgent_after (20) for urgent, tier_critical_after (40) for critical-3; lethal (no signal at all) is judged separately and never becomes a rush level"
+    },
+    "time_base": {
+      "note": "heartbeat is the only clock: every window/threshold is expressed in beats, so changing the heartbeat rate changes the whole system at once",
+      "unit": "heartbeat",
+      "interval_ms": 3000,
+      "beats": {
+        "sample": 20,
+        "short_window": 600,
+        "shutdown": 600,
+        "discharge": 900,
+        "min_samples": 8
+      }
     }
   },
   "source_language": {
@@ -410,6 +425,53 @@
       "max_age_days": 8,
       "max_drift": 5,
       "snapshot_cmd": "baseline.ps1"
+    }
+  },
+  "organ_intake": {
+    "note": "what counts as a protocol: it turns itself, uses its own beat as the baseline, and reports upward. A protocol is those three promises, not a format document. Inference is only the fallback when there is no protocol (mark it inferred); it never becomes the baseline",
+    "terms": {
+      "turn_itself": "it owns a loop sized by its own every; nobody carries it",
+      "report_its_own_pace": "preferred: it reports its own lateness (pace signal) when late/timeout/failed; inventing its own time base is allowed as long as it converts",
+      "emit_sig": "it ends with one SIG line, adapted by core/adapter.mjs",
+      "be_managed": "it is registered in registry (id + every) and has an owner plus entries in the immunity register"
+    },
+    "foreign_organ": {
+      "allowed": "like a charging handshake: infer first to learn its real parameters (tiers, rates, cadence), then build our own entry from what we found",
+      "rule": "run it at its own tier: the parameters observed are the ones in force, so the loop runs at the rate it actually offers. Our own entry is only the record of that, not a replacement rate. Mark the timing inferred (source=adapter), never as its self-report",
+      "why": "we are alive, we can go and find out; once the parameters are known there is no need to wait for the other side to hand us a table - we write ours",
+      "no_invented_default": "what is banned is not building our own entry, it is inventing values we never observed (a guessed degraded default) and passing them off as the fallback",
+      "order": [
+        "it has the protocol: read its table and connect, nothing else needed",
+        "it has tiers/parameters but they do not line up with ours: build the mapping that lands it on our tiers, and keep it as our own entry",
+        "nothing readable at all: infer by observation, then build the mapping onto our tiers"
+      ],
+      "when_mismatch": "build it to line up with our own tier: ours is the side that decides what an acceptable rate is; the other side only supplies what it can do"
+    },
+    "protocol_definition": {
+      "what_it_is": "better adapting: values settled in advance, so plugging in is a lookup instead of a derivation. The act of conversion is the protocol; the table is just where the preset values sit",
+      "our_tables_role": "spec.signal and the code tables are only where the conversion lands; they are the shape of the adapting, not the protocol by themselves",
+      "what_it_requires": [
+        "it turns itself",
+        "its own beat is the baseline",
+        "it reports upward"
+      ],
+      "fallback": "when it cannot report, infer its real parameters, then build our own mapping from them, marked inferred; the baseline stays our own clock",
+      "why_preset": "inference works but is slow: without preset values every new device costs a round of observation. With them, plug in and convert"
+    },
+    "vendor_protocol": {
+      "note": "our table is the reference: this is the starting point, later mainstream models/devices adapt to it. Taking a vendor table and mapping it into our signal fields is a transition, not the goal",
+      "steps": [
+        "read the vendor table",
+        "write a map into signal.required/optional plus state/kind/rush codes",
+        "adapter converts on the way to the bus"
+      ],
+      "where_the_map_lives": "spec.map for value conversions; adapter_protocol gets the protocol name once a common one exists",
+      "body_note": "a prosthetic body that turns itself and reports upward is connected exactly this way; we only translate its signals",
+      "direction": {
+        "reference": "spec.signal + state/kind/rush codes + organ_intake terms are ours; they define what it means to be plugged in",
+        "vendor_side": "a vendor adapts by writing the mapping on its own side; when it does, our adapter gets thinner and eventually disappears",
+        "transitional": "mapping on our side exists only while the other side has no protocol yet"
+      }
     }
   }
 }

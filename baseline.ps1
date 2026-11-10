@@ -99,4 +99,8 @@ if ($diffs.Count -eq 0) {
     Write-Host ('  偏离 {0} 项：' -f $diffs.Count) -ForegroundColor Yellow
     foreach ($d in $diffs) { Write-Host ('    ' + $d) -ForegroundColor Yellow }
 }
+# 2026-11-09 机器码：免疫按这一行取结论，不再解析上面的人话（人话排版随便改，契约只这一行）
+# state 0 才算没偏离；counts = [偏离项数, 基线里记的指标数]
+$sigState = if ($diffs.Count -eq 0) { 0 } else { 1 }
+Write-Output ('SIG {{"state":{0},"counts":[{1},{2}]}}' -f $sigState, $diffs.Count, @($baseState.PSObject.Properties).Count)
 exit 0

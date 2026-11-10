@@ -57,9 +57,11 @@ const CELLS = REG.cells || {}
 if (verdict && Array.isArray(verdict.rows)) {
   // "最后一次见到"同样以 center.lastSeen 为准（单调、放电不影响）；rows 里的 last 会偏旧。
   let lastSeenMap = {}
+  let selfReport = {} // 器官自己报的 pace（异常时才有），判定只认它 + 中枢的 silent
   try {
     const c = JSON.parse(readFileSync(join(ROOT, 'track', 'center.json'), 'utf8'))
     lastSeenMap = c.lastSeen || {}
+    selfReport = c.pace || {}
   } catch { lastSeenMap = {} }
   const TH = (SPEC.expect && SPEC.expect.drift) || { state1_bp: 1000, state2_bp: 5000 }
   const byOrgan = {}
@@ -67,21 +69,24 @@ if (verdict && Array.isArray(verdict.rows)) {
   for (const row of verdict.rows) {
     if (String(row.what) === 'heartbeat') continue
     const id = byOrgan[String(row.organ)] || String(row.what || '').replace(/^organ_\d+_/, '')
-    const every = Number((REG[String(row.organ)] || {}).every || 0)
+    const every = Number((CELLS[String(row.organ)] || {}).every || 0)
     const limitMs = (every > 0 ? every * 2 : 60) * 60000
     const lastSeen = Math.max(Number(row.last || 0), Number(lastSeenMap[String(row.organ)] || 0))
-    const silent = row.organ > 0 && (!lastSeen || Date.now() - lastSeen > limitMs)
+    // 按需器官（every=0）不判没反应：它们本来就不按节拍来
+    const silent = row.organ > 0 && every > 0 && (!lastSeen || Date.now() - lastSeen > limitMs)
     const bp = Number(row.bp || 0)
+    // 2026-11-10 用户：「没来就上报大脑，让他处理」。所以 silent（长时间没报到）一律进上传，
+    // 不自动派活——它为什么没来，中枢不知道，也不该猜。
     let kind = null
     if (silent) kind = 'silent'
-    else if (bp >= TH.state2_bp) kind = 'broken'
-    else if (bp >= TH.state1_bp) kind = 'late'
+    else if ((selfReport[String(row.organ)] || {}).state >= 1) kind = Number(selfReport[String(row.organ)].state) >= 2 ? 'broken' : 'late' // 只认它自己报的 pace
     if (!kind) continue // 自己判出来没事的，不进计划
-    const tier = kind === 'silent' ? 2 : (bp >= TH.state2_bp ? 2 : 1)
+    const tier = kind === 'silent' ? 2 : Number(selfReport[String(row.organ)].state) >= 2 ? 2 : 1
     let bucket = 'observed'
     let remedy = null
-    if (MECHANICAL[id] && (kind === 'broken' || kind === 'silent')) { bucket = 'mechanical'; remedy = MECHANICAL[id] }
-    else if (UNDERSTANDING.includes(id) || kind === 'silent') bucket = 'needs-understanding'
+    if (kind === 'silent') bucket = 'needs-understanding' // 没来 = 上报，不代它决定
+    else if (MECHANICAL[id] && kind === 'broken') { bucket = 'mechanical'; remedy = MECHANICAL[id] }
+    else if (UNDERSTANDING.includes(id)) bucket = 'needs-understanding'
     plan.items.push({ organ: row.organ, id, kind, tier, bp, bucket, remedy, judged_by: 'brain' })
   }
 }

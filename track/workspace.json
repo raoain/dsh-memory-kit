@@ -1,0 +1,22 @@
+{
+  "at": "2026-11-10T05:20:41.909Z",
+  "round": 73,
+  "cap": 7,
+  "items": [
+    {
+      "id": "consolidate",
+      "kind": "late",
+      "bucket": "observed",
+      "remedy": null,
+      "held_rounds": 1,
+      "first": "2026-11-10T05:20:41.909Z",
+      "last": "2026-11-10T05:20:41.909Z"
+    }
+  ],
+  "droppedThisRound": [
+    {
+      "id": "backup",
+      "held_rounds": 2
+    }
+  ]
+}

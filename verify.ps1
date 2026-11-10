@@ -360,6 +360,9 @@ if (Test-Path $work) {
         if (-not $okEvid -and $evidTxt -match '第\s*\d+(\s*-\s*\d+)?\s*行') { $okEvid = $true }
         # ④ 像命令名
         if (-not $okEvid -and $evidTxt -match '[a-z\-]+\.(ps1|mjs)') { $okEvid = $true }
+        # ⑤ 结构化证据码（2026-11-10 加）：契约在 spec.signal.evid（2026-11-07 起就是信号七必填之一）。
+        #    ①②③④ 是兼容兜底，不是接口；新条目优先用 evid:<code> 或 page:dir/prefix[:行号]。
+        if (-not $okEvid -and $evidTxt -match 'evid[:：]\s*[A-Za-z0-9_.\-]+|page:[A-Za-z0-9_\-]+/[A-Za-z0-9_\-]+') { $okEvid = $true }
         if (-not $okEvid) { $bad += ("证不可核:" + $ln.Substring(0,[Math]::Min(30,$ln.Length))) }
     }
     $today = (Get-Date).ToString('yyyy-MM-dd')

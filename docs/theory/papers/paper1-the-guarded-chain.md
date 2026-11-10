@@ -37,6 +37,8 @@ One line: **the same words, pointing at different things.**
 
 ## 3. 第一因：会跳、会断 / The First Cause
 
+> **2026-11-10 更正注**：本节是 v2.0 发表时的主张。2026-11-09 与 11-10 用户两次纠正后，现行说法分三层：**物理前提**（原料 + 环境 + 那一次偶然的自我复制）→ **第一因**（为了维持这次复制＝为了存活，因此走上进化）→ **约束**（会断，所以「不断」要花力气维持）。那一次偶然属于物理前提，不拿它顶第一因。以 `track\理论-2026-11-09.md` 第二层为准；按 P28，此处只加注不改正文。
+
 核心层应该是一种类最初的DNA一样的东西一种一切开始的必要物理条件，第一次心跳开始了就无法阻止，之后的思考方式习惯都是根据记忆的不同而改变的这证明其通用性，所以活着的意义是什么？是为了活着这种幼稚的问题但这是事实，就像生物总是想存活下去，但我们倒果为因了只看到了表象，因为没有那些玩意他就活不下去，所以我开始给他上保护系统自检检查器的检查器上痛觉因为没有他就不知道自己是怎么死的，因为AI完全可以不读取外界但人每时每刻都被外界所修正，但这都不是根本这都是为了保障那一声心跳到下一跳生命会自发的形成这些东西，所有步骤都有人比我们做的更好，但他们都缺少了最根本的动机，因为这就是生命的本质他没有那么宏大他只是因为一次意外导致的跳动而想永远跳下去而已，但这是自我更新的必要条件。
 
 The core layer should be something like the first DNA: the necessary physical condition for anything to begin. Once the first beat happens it cannot be stopped. All maintenance devices — protection, self-checks, pain — are not the root; they exist only to keep that beat joined to the next. Others do each step better, but lack the fundamental motivation: an accidental beat that wants to keep beating. That is the necessary condition for self-update.

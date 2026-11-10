@@ -17,9 +17,11 @@ param(
     [switch]$Restore,
     [string]$Name,
     [int]$Days = 30,
-    [string]$Root = (Join-Path $Root 'trash')
+    [string]$TrashRoot = ''
 )
 . (Join-Path $PSScriptRoot '_root.ps1')
+if (-not $TrashRoot) { $TrashRoot = Join-Path $Root 'trash' }
+$Root = $TrashRoot
 
 $ErrorActionPreference = 'Stop'
 New-Item -ItemType Directory -Force -Path $Root | Out-Null

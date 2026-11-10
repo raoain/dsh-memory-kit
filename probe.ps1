@@ -73,6 +73,21 @@ $origVal = [string]$pinState.pins.'doc.native'
 $out8 = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'pin.ps1') -Diff 2>&1 | Out-String
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'pin.ps1') -Set doc.native $origVal | Out-Null
 Add-Probe 'pin 报漂移' ($out8 -match 'DRIFT\s+doc\.native') $(if ($out8 -match 'DRIFT') { '' } else { '改了钉住值却不报 DRIFT → 引脚是哑炮' })
+# ── 9) lint 抓「跨度无日期锚」：编出来的「N 年前」必须被报出来
+$pd = Join-Path $tmp 'spanproj'
+New-Item -ItemType Directory -Force -Path (Join-Path $pd 'notebook') | Out-Null
+[IO.File]::WriteAllText((Join-Path $pd 'notebook\span.md'), "这个口子两年前就该开了。`r`n", (New-Object Text.UTF8Encoding($true)))
+$out9 = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'lint.ps1') -Path $pd 2>&1 | Out-String
+Add-Probe 'lint 抓跨度无锚' ($out9 -match 'md-span') $(if ($out9 -match 'md-span') { '报了 md-span' } else { '编的跨度被放行 → 这条判据是哑炮' })
+
+# ── 10) lint 抓「判据编号重号」：两页同号必须被报出来
+$pp = Join-Path $tmp 'pdupproj'
+New-Item -ItemType Directory -Force -Path (Join-Path $pp 'notebook') | Out-Null
+[IO.File]::WriteAllText((Join-Path $pp 'notebook\a.md'), "## P99 alpha`r`n", (New-Object Text.UTF8Encoding($true)))
+[IO.File]::WriteAllText((Join-Path $pp 'notebook\b.md'), "## P99 beta`r`n", (New-Object Text.UTF8Encoding($true)))
+$out10 = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'lint.ps1') -Path $pp 2>&1 | Out-String
+Add-Probe 'lint 抓判据重号' ($out10 -match 'md-pdup') $(if ($out10 -match 'md-pdup') { '报了 md-pdup' } else { '重号被放行 → 编号检查是哑炮' })
+
 # ── 输出
 Write-Host ''
 Write-Host '=== 探针结果 ===' -ForegroundColor Cyan

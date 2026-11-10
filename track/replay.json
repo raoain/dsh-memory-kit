@@ -1,0 +1,123 @@
+{
+  "at": "2026-11-10T05:15:02.305Z",
+  "caveat": "backtest: today's registry every + today's silent rule over archived rows, on a fixed 60s grid; silentMinutes is the honest metric, not a count of rows",
+  "span_hours": 73.8,
+  "rows": 13361,
+  "days": [
+    "bus-20261107.jsonl",
+    "bus-20261108.jsonl",
+    "bus-20261109.jsonl",
+    "bus-20261110.jsonl"
+  ],
+  "silentMinutes": {
+    "5": 119,
+    "8": 3567,
+    "9": 2457
+  },
+  "uncoveredMinutes": {
+    "5": 1267
+  },
+  "dayCoverage": {
+    "2026-11-07": {
+      "1": 35,
+      "2": 5,
+      "3": 3,
+      "4": 4,
+      "5": 1,
+      "6": 1,
+      "7": 9,
+      "8": 4,
+      "9": 1
+    },
+    "2026-11-08": {
+      "1": 138,
+      "7": 7595,
+      "8": 23,
+      "9": 27,
+      "15": 81
+    },
+    "2026-11-09": {
+      "1": 6,
+      "7": 536,
+      "8": 1,
+      "9": 1,
+      "15": 28,
+      "17": 1,
+      "18": 2,
+      "20": 1,
+      "21": 1
+    },
+    "2026-11-10": {
+      "1": 47,
+      "5": 2,
+      "7": 4414,
+      "8": 15,
+      "9": 10,
+      "11": 2,
+      "15": 242,
+      "17": 36,
+      "18": 52,
+      "20": 15,
+      "21": 22
+    }
+  },
+  "monitoredOrgans": [
+    "5",
+    "8",
+    "9",
+    "17",
+    "18"
+  ],
+  "brainHistory": {
+    "5": {
+      "id": "backup",
+      "rounds": 36,
+      "kinds": {
+        "broken": 10,
+        "silent": 26
+      }
+    },
+    "8": {
+      "id": "self",
+      "rounds": 34,
+      "kinds": {
+        "broken": 33,
+        "silent": 1
+      }
+    },
+    "9": {
+      "id": "pulse",
+      "rounds": 34,
+      "kinds": {
+        "broken": 33,
+        "silent": 1
+      }
+    },
+    "16": {
+      "id": "align",
+      "rounds": 39,
+      "kinds": {
+        "broken": 7,
+        "silent": 32
+      }
+    },
+    "17": {
+      "id": "immunity",
+      "rounds": 36,
+      "kinds": {
+        "broken": 33,
+        "silent": 1,
+        "late": 2
+      }
+    },
+    "18": {
+      "id": "consolidate",
+      "rounds": 43,
+      "kinds": {
+        "broken": 26,
+        "late": 16,
+        "silent": 1
+      }
+    }
+  }
+}

@@ -22,9 +22,15 @@ import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, rea
 import { join } from 'node:path'
 import { ROOT } from './root.mjs'
 import { emit } from './bus.mjs'
+import { requestSpawn } from './arbiter.mjs'
 
 const SELF = '21'
 const BUS = join(ROOT, 'track', 'bus.jsonl')
+// 2026-11-10 闭环比想更难：想完要有人做。处置表只在 spec 里（不在这里写死），
+// 谁能接哪个 remedy 由 spec.brain.mechanical 决定。
+const SPEC = (() => { try { return JSON.parse(readFileSync(join(ROOT, 'core', 'spec.json'), 'utf8')) } catch { return {} } })()
+const REG = (() => { try { return JSON.parse(readFileSync(join(ROOT, 'core', 'registry.json'), 'utf8')) } catch { return { cells: {} } } })()
+const REMEDY = ((SPEC.brain && SPEC.brain.mechanical) || {})
 const MIND = join(ROOT, 'track', 'mind')
 const STATE = join(MIND, 'state.json')
 const dry = process.argv.includes('--dry')
@@ -32,6 +38,19 @@ const dry = process.argv.includes('--dry')
 if (!existsSync(MIND)) mkdirSync(MIND, { recursive: true })
 const day = new Date().toISOString().slice(0, 10)
 const LOG = join(MIND, `${day}.jsonl`)
+
+// 2026-11-10 大脑第一步：判不出的时候先查先例，别凭空发明做法。
+// 先例来自海马体索引（track\hippocampus.json）：这个器官过去被判过几次、有没有好转过。
+//   cleared > 0 → 有先例：给出"照上次好转时那条路走"，并把先例指出来
+//   cleared = 0 → 没有先例：明确说"判不了，因为从没见过它好转"，不编一个 remedy
+function precedent(organ) {
+  const p = join(ROOT, 'track', 'hippocampus.json')
+  if (!existsSync(p)) return null
+  try {
+    const h = JSON.parse(readFileSync(p, 'utf8'))
+    return (h.organs || {})[String(organ)] || null
+  } catch { return null }
+}
 
 function newestPlan() {
   if (!existsSync(join(ROOT, 'track', 'brain.jsonl'))) return null
@@ -89,7 +108,19 @@ function loadNucleus() {
 }
 const prevNucleus = loadNucleus()
 
-const plan = newestPlan()
+// 2026-11-10 回放用：--plan <file> 指定读哪份 plan（默认仍是最新 brain.jsonl），不碰真数据。
+function argOf(name, dflt) {
+  const i = process.argv.indexOf(name)
+  return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : dflt
+}
+const planFile = argOf("--plan", "")
+function planFrom(path) {
+  if (!existsSync(path)) return null
+  const lines = readFileSync(path, "utf8").trim().split(/\r?\n/).filter(Boolean)
+  if (!lines.length) return null
+  try { return JSON.parse(lines[lines.length - 1]) } catch { return null }
+}
+const plan = planFile ? planFrom(join(ROOT, planFile)) : newestPlan()
 const prev = previousState()
 const thought = {
   at: new Date().toISOString(),
@@ -102,6 +133,34 @@ const thought = {
 }
 
 thought.buffer.read_back = history.length
+
+// 2026-11-10 前额叶：一个能跨轮「握在手里」的工作区。
+// 在这之前 mind 每轮要么扫全部 brain.jsonl、要么只看上一轮，没有「当前正在想的那几件」。
+// 规则：容量 7；plan 里还在的续期；不在 plan 里的算办完、移出；新来的只在有空位时收（工作记忆不是队列）。
+const WORKSPACE = join(ROOT, 'track', 'workspace.json')
+const WORKSPACE_CAP = 7
+function loadWorkspace() {
+  try { return existsSync(WORKSPACE) ? JSON.parse(readFileSync(WORKSPACE, 'utf8')) : null } catch { return null }
+}
+const prevWorkspace = loadWorkspace()
+const holding = new Map()
+for (const it of (prevWorkspace && prevWorkspace.items) || []) holding.set(String(it.id), it)
+const nowIds = new Set(((plan && plan.items) || []).map((x) => String(x.id)))
+const dropped = []
+for (const [id, it] of holding) {
+  if (!nowIds.has(id)) { dropped.push({ id, says: it.says, held_rounds: Number(it.held_rounds || 0) }); holding.delete(id) }
+}
+for (const it of (plan && plan.items) || []) {
+  const id = String(it.id)
+  const kept = holding.get(id)
+  if (kept) { kept.held_rounds = Number(kept.held_rounds || 0) + 1; kept.last = thought.at }
+  else if (holding.size < WORKSPACE_CAP) {
+    holding.set(id, { id, kind: it.kind, bucket: it.bucket, remedy: it.remedy || null, held_rounds: 1, first: thought.at, last: thought.at })
+  }
+}
+const workspace = { at: thought.at, round: thought.round, cap: WORKSPACE_CAP, items: [...holding.values()], droppedThisRound: dropped }
+thought.workspace = { held: workspace.items.length, dropped: dropped.length }
+
 if (plan) {
   for (const it of plan.items || []) {
     // 2026-11-09 修正（生物学同一条规矩）：**习惯只对良性的重复成立，有害的重复反而要升**。
@@ -115,30 +174,149 @@ if (plan) {
     const isHabit = sameKind >= HABIT_AFTER && isBenign
     const isChronic = sameKind >= HABIT_AFTER && !isBenign
     const evid = `bp=${it.bp} tier=${it.tier} kind=${it.kind}`
+    // 理解的四个槽（2026-11-10 PC1）：rel=挂到既有判断上的哪种关系；apply=可证伪的预测；
+    // persp=替代解释；self=这个结论的边界。缺哪个槽就是哪种没懂，不许用"复述"顶替。
+    const prevSame = history
+      .map((t) => (t.L1 || []).find((x) => x.id === it.id))
+      .filter(Boolean)
+      .pop()
+    const prevBp = prevSame && prevSame.evid ? Number((String(prevSame.evid).match(/bp=(\d+)/) || [])[1]) : null
+    const rel = prevSame ? (prevBp !== null && Number(it.bp) !== prevBp ? 'revise' : 'same') : 'new'
+    const relTo = prevSame ? `${it.id}@${rel}` : 'none'
+    // to：revise 的新值（换成了什么）；null 表示"撤掉旧结论、没有新值顶上"
+    const to = rel === 'revise' ? String(it.kind) : rel === 'same' ? String(it.kind) : String(it.kind)
+    const apply = isHabit
+      ? `expect kind==${it.kind} next round (habit skips rejudge)`
+      : `expect kind!=${it.kind} next round after remedy`
+    const persp = it.remedy
+      ? `alt: unchanged if remedy=${it.remedy} fails`
+      : `alt: cadence artifact if this organ reports on a slower beat`
+    const self = `bound: window covers last few rounds; habit_after=${HABIT_AFTER}; bp is worst-of-windows`
     if (isHabit) {
-      thought.L1.push({ id: it.id, says: `${it.id} kind=${it.kind} habit=true streak=${sameKind}`, evid, habit: true, reused_from: sameKind })
+      thought.L1.push({ id: it.id, says: `${it.id} kind=${it.kind} habit=true streak=${sameKind}`, evid, rel, rel_to: relTo, to, apply, persp, self, habit: true, reused_from: sameKind })
       habits[it.id] = { kind: it.kind, streak: sameKind, since: (habits[it.id] && habits[it.id].since) || thought.at }
     } else if (isChronic) {
-      thought.L1.push({ id: it.id, says: `${it.id} kind=${it.kind} chronic=true streak=${sameKind}`, evid, chronic: true, streak: sameKind })
+      thought.L1.push({ id: it.id, says: `${it.id} kind=${it.kind} chronic=true streak=${sameKind}`, evid, rel, rel_to: relTo, to, apply, persp, self, chronic: true, streak: sameKind })
       habits[it.id] = { kind: it.kind, streak: sameKind, since: (habits[it.id] && habits[it.id].since) || thought.at, chronic: true }
       thought.chronic = (thought.chronic || 0) + 1
     } else {
-      thought.L1.push({ id: it.id, says: `${it.id} kind=${it.kind} ${evid}`, evid })
+      thought.L1.push({ id: it.id, says: `${it.id} kind=${it.kind} ${evid}`, evid, rel, rel_to: relTo, to, apply, persp, self })
     }
 
-    // L2：习惯的情况跳到"用过什么"，其他照旧
-    if (it.remedy) thought.L2.push({ id: it.id, move: it.remedy, how: isHabit ? 'dispatch-habitual' : 'dispatch' })
-    else thought.L2.push({ id: it.id, move: null, how: 'cannot-decide', why: 'no remedy in spec.brain.mechanical' })
+    // L2：两步并行想，再比对（借 CoT 的机理：中间步骤必须写出来、且两条路径互校）。
+    // 路径一（规则）：spec.brain.mechanical 里这个器官有没有固定处方。
+    // 路径二（先例）：海马体记着它好转过没有、那次跟着什么动作。
+    // 一致就采纳，冲突就记 conflict 并上报——这就是「规则打架时怎么办」的第一版。
+    // 规则路径：plan 带处方就用它；没带就查 spec.brain.mechanical（按器官名）
+    const ruleMove = it.remedy || REMEDY[String(it.id)] || null
+    const pc = precedent(it.organ)
+    const cleared = pc ? Number(pc.cleared || 0) : 0
+    const rate = pc && pc.seen ? cleared / pc.seen : 0
+    const strong = cleared >= 2 && rate >= 0.1
+    const priorMove = cleared > 0 && strong && pc.lastGoodAction && pc.lastGoodAction.reason ? `follow-prior-clear:${pc.lastGoodAction.reason}` : null
+    const steps = [
+      { q: "is there a fixed remedy for this organ?", evidence: ruleMove ? `spec.brain.mechanical[${it.id}]=${ruleMove}` : `no entry for ${it.id}`, answer: ruleMove },
+      { q: "has it ever cleared, strongly enough to reuse?", evidence: pc ? `seen=${pc.seen} cleared=${cleared} rate=${(rate * 100).toFixed(1)}%` : "no hippocampus record", answer: priorMove },
+    ]
+    let l2 = { id: it.id, steps }
+    if (ruleMove && priorMove && ruleMove !== priorMove.replace("follow-prior-clear:", "")) {
+      l2 = { ...l2, move: null, how: "conflict", why: `rule says ${ruleMove}, precedent says ${priorMove}; not choosing between them on my own` , rule_move: ruleMove, prior_move: priorMove }
+    } else if (ruleMove) {
+      l2 = { ...l2, move: ruleMove, how: priorMove ? "rule+precedent-agree" : (isHabit ? "dispatch-habitual" : "dispatch"), why: priorMove ? "both paths landed on the same move" : "fixed remedy from spec" }
+    } else if (priorMove) {
+      l2 = { ...l2, move: priorMove, how: "precedent", why: `cleared ${cleared} time(s) before (${(rate * 100).toFixed(1)}%); last clear followed ${pc.lastGoodAction.reason}` , prior: { seen: pc.seen, cleared, kinds: pc.kinds } }
+    } else if (cleared > 0) {
+      l2 = { ...l2, move: null, how: "cannot-decide", why: `precedent too weak: cleared only ${cleared} of ${pc.seen} (${(rate * 100).toFixed(1)}%); need >=2 clears and >=10%`, prior: { seen: pc.seen, cleared, kinds: pc.kinds } }
+    } else {
+      l2 = { ...l2, move: null, how: "cannot-decide", why: pc ? `no precedent: judged ${pc.seen} time(s), never cleared; a human or a new organ has to say what good looks like` : "no precedent record at all: hippocampus index is missing for this organ" }
+    }
+    // 2026-11-10 用户：「要下发就得看时效性」。回放的旧数据只当想一遍，不许真派。
+    if (plan && plan.replayed) { l2 = { ...l2, move: null, why_stale: "replayed input: too old to dispatch", original_move: l2.move } }
+    thought.L2.push(l2)
+  }
+  // 2026-11-10 用户：「让他读就行了，这个是他环的一部分，这个是必跑的」——
+  // 工作区里还握着、但本轮 plan 没再出现的条目也要进 L1（标 carried）：不是被忘了，是手上还放着。
+  // 这样工作区才真的参与这一轮的想，而不是只写个文件。
+  for (const it of workspace.items) {
+    if (nowIds.has(String(it.id))) continue
+    thought.L1.push({
+      id: it.id,
+      says: `${it.id} carried: still held from an earlier round (held ${it.held_rounds})`,
+      evid: `workspace:${it.first || 'unknown'}`,
+      rel: 'same',
+      rel_to: `${it.id}@carried`,
+      to: it.kind || null,
+      apply: 'if it stays quiet next round, drop it from the workspace',
+      persp: 'alt: it may be quiet because it was fixed, not because it stopped mattering',
+      self: 'bound: carried means unresolved, not urgent',
+      carried: true,
+      bp: 0 // 工作区条目没有本轮 bp；L3 的比对会因此把它标成无依据，见下
+    })
   }
 
-  // L3：复查——每条结论的 evid 必须能在 plan 里对上；对不上的降级，不保留"看起来对"的话
+  // L3：复查（2026-11-10 用户：验证必须不看被验证的那份结论，要从原数据采样再算）。
+  // 以前是拿 plan 里的 bp 比 evid——两边同一份 plan 的产物，等于自己核自己。
+  // 现在改成：从 track/bus.jsonl 重读该器官最后一条原始信号，按 spec 的 2×every 自己判一次，
+  // 和 L1 的说法对不上就降级（现实与逻辑不符 = 数据那条路有问题）。
+  function busLastFor(organNo) {
+    try {
+      const lines = readFileSync(BUS, 'utf8').trim().split(/\r?\n/)
+      for (let k = lines.length - 1; k >= 0; k--) {
+        let r; try { r = JSON.parse(lines[k]) } catch { continue }
+        if (String(r.src) === String(organNo)) return r
+      }
+    } catch { /* 读不到就当作没数据 */ }
+    return null
+  }
+  const replayInput = !!(plan && plan.replayed)
   for (let i = 0; i < thought.L1.length; i++) {
     const item = thought.L1[i]
-    const src = (plan.items || []).find((x) => x.id === item.id)
+    if (item.carried) { thought.L3.checked++; continue }
     thought.L3.checked++
-    if (!src || !String(item.evid).includes(`bp=${src.bp}`)) {
-      thought.L3.demoted.push({ id: item.id, why: 'evidence does not match the plan it came from' })
+    const organEntry = Object.entries(REG.cells || {}).find(([, c]) => String(c.id) === String(item.id))
+    const organNo = organEntry ? organEntry[0] : null
+    if (replayInput) { thought.L3.recheck = thought.L3.recheck || []; thought.L3.recheck.push({ id: item.id, note: 'replayed input: independent recheck skipped (time does not match)' }); continue }
+    if (!organNo) { item.demoted = true; thought.L3.demoted.push({ id: item.id, why: "no organ number, cannot re-read" }); continue }
+    const cell = (REG.cells || {})[organNo] || {}
+    const every = Number(cell.every || 0)
+    const last = busLastFor(organNo)
+    const nowMs = Date.now()
+    let recomputed = "unknown"
+    if (!last) recomputed = "never"
+    else if (every > 0 && nowMs - Number(last.ts) > every * 2 * 60000) recomputed = "silent"
+    else if (Number(last.state) >= 2) recomputed = "broken"
+    else if (Number(last.state) === 1) recomputed = "late"
+    else recomputed = "ok"
+    // L1 里写的 kind（late/broken/silent/ok）跟着这条独立重算比一次；对不上就降级
+    const said = String(item.to || (String(item.says).match(/kind=(\w+)/) || [])[1] || "")
+    const agree = !said || recomputed === said || (recomputed === "ok" && said === "ok")
+    thought.L3.recheck = thought.L3.recheck || []
+    thought.L3.recheck.push({ id: item.id, organ: organNo, said, recomputed, last_at: last ? last.at : null })
+    if (!agree) {
       item.demoted = true
+      thought.L3.demoted.push({ id: item.id, why: "independent re-read says " + recomputed + " but L1 said " + said + " (source: bus.jsonl)" })
+    }
+  }
+  // 撤回也进 L1 当原料（2026-11-10 用户：「感觉不对也一样的放回去当一个原料，这是以后的经验」）。
+  // 主流把这一步删掉只留结果；我们保留"我曾判它坏"——否则下一轮从同一批痕迹会再判错一遍。
+  const prevRound = history.length ? history[history.length - 1] : null
+  if (prevRound && Array.isArray(prevRound.L1)) {
+    const nowIds = new Set(thought.L1.map((x) => x.id))
+    for (const old of prevRound.L1) {
+      if (nowIds.has(old.id)) continue
+      if (old.retracted) continue // 上一轮的撤回条目不再重复撤回
+      thought.L1.push({
+        id: old.id,
+        says: `${old.id} cleared (was judged bad)`,
+        rel: 'revise',
+        rel_to: `${old.id}@revise`,
+        to: null,
+        evid: `prev_round=${prevRound.round}`,
+        retracted: { at: thought.at, why: 'organ no longer in newest plan', prior: String(old.says || ''), prev_evid: String(old.evid || '') },
+        apply: 'expect it stays clear next round',
+        persp: 'alt: it may report again on a slower beat (every>0)',
+        self: 'bound: absence in one plan is not proof of health',
+      })
     }
   }
 }
@@ -204,7 +382,24 @@ if (forceIdle || thought.L1.length === 0) {
 
 const backed = thought.L1.filter((x) => !x.demoted).length
 const canMove = thought.L2.filter((x) => x.move).length
-thought.summary = `L1 ${thought.L1.length} (backed ${backed}) / L2 ${canMove} movable / L3 checked ${thought.L3.checked} demoted ${thought.L3.demoted.length}`
+
+// 2026-11-10 闭环：想完了要有人做。L2 里凡是"照先例"给出的做法，走同一条下传口（arbiter）
+// 去派活——冷却和"一次只放一个"都还在那里，不在这里重写。做完把"有没有派出去"记回 L2，
+// 下一轮和 dispatch.jsonl 一起就能回答"我上轮想的有没有被执行"。
+for (const mv of thought.L2) {
+  if (!mv.move || !String(mv.move).startsWith('follow-prior-clear:')) continue
+  const reason = String(mv.move).slice('follow-prior-clear:'.length)
+  const target = Object.entries(REMEDY).find(([, r]) => r === reason)
+  if (!target) { mv.dispatched = false; mv.why_not = `no organ in spec.brain.mechanical maps to ${reason}`; continue }
+  const cellEntry = Object.entries(REG.cells || {}).find(([, c]) => String(c.id) === String(target[0]))
+  const cell = cellEntry ? cellEntry[1] : null
+  if (!cell || !cell.path) { mv.dispatched = false; mv.why_not = 'target organ has no path'; continue }
+  const v = requestSpawn({ from: SELF, id: cell.id, path: cell.path, reason, rush: 2, tier: 2 })
+  mv.dispatched = v ? v.released !== false : false
+  mv.dispatch = v || null
+}
+thought.dispatched = thought.L2.filter((x) => x.dispatched).length
+thought.summary = `L1 ${thought.L1.length} (backed ${backed}) / L2 ${canMove} movable / L3 checked ${thought.L3.checked} demoted ${thought.L3.demoted.length} / dispatched ${thought.dispatched}`
 
 // 数核：把这一轮压成向量，和上一轮比（delta），然后写回，交给下一轮。
 const vital = (() => { try { return JSON.parse(readFileSync(join(ROOT, 'track', 'center.json'), 'utf8')).vital || {} } catch { return {} } })()
@@ -235,5 +430,7 @@ if (dry) {
   writeFileSync(STATE, JSON.stringify({ rounds: thought.round, lastThought: thought.at, summary: thought.summary }, null, 2), 'utf8')
   if (plan) emit(SELF, 4, thought.L3.demoted.length ? 1 : 0, thought.L1.length, `mind:${backed}/${thought.L1.length}`, { rush: 0, topic: 'mind.thought', summary: thought.summary })
   writeFileSync(HABITS, JSON.stringify(habits, null, 2), 'utf8')
+  // 工作区写回：下一轮读它接着想（前额叶那格）
+  writeFileSync(WORKSPACE, JSON.stringify(workspace, null, 2) + '\n', 'utf8')
   console.log(JSON.stringify({ round: thought.round, summary: thought.summary, habits: Object.keys(habits).length, delta }))
 }

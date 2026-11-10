@@ -143,6 +143,41 @@ foreach ($f in $mds) {
         }
     }
 }
+# 5) 跨度声明必须带日期锚（2026-11-10 加；根因：同一根因第三次——我把 spec 的 evid 说成「两年前就开了口」，
+#    实际 spec.json 建于 2026-11-07、项目起点 2026-10-26。判据：说「多久以前」必须从文件时间戳取。）
+#    只扫 notebook\ 与 track\：这两层是判据与档案，草稿与对外稿件里「三年前拍的东西」是台词，不算断言。
+$claimMds = @()
+foreach ($sub in @('notebook', 'track')) {
+    $d = Join-Path $Path $sub
+    if (Test-Path $d) { $claimMds += @(Get-ChildItem $d -Filter '*.md' -File -ErrorAction SilentlyContinue) }
+}
+foreach ($f in $claimMds) {
+    $text = [IO.File]::ReadAllText($f.FullName, [Text.Encoding]::UTF8)
+    $lines = $text -split "`r?`n"
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i] -notmatch '[两三四五六七八九十0-9]+\s*年[前多]') { continue }
+        if ($lines[$i] -match '\d{4}-\d{2}-\d{2}') { continue }
+        Add-Issue $f.Name ($i + 1) 'md-span' '跨度没带日期锚（说「N 年前」必须从文件时间戳取，或写明日期）'
+    }
+}
+
+# 6) 判据编号必须全局唯一（2026-11-10 加；根因：5-判据 与 12-判据-专项 各用一套 P 号，P15/P16/P17 撞了，
+#    引「按 P17」时读者不知道指哪条。判据：编号是检索键，检索键必须唯一。）
+$pNums = @{}
+$nbDir = Join-Path $Path 'notebook'
+if (Test-Path $nbDir) {
+    foreach ($nf in @(Get-ChildItem $nbDir -Filter '*.md' -File -ErrorAction SilentlyContinue)) {
+        $nlines = [IO.File]::ReadAllLines($nf.FullName, [Text.Encoding]::UTF8)
+        for ($j = 0; $j -lt $nlines.Count; $j++) {
+            if ($nlines[$j] -match '^##\s*P(\d+)\b') {
+                $pn = [int]$Matches[1]
+                if ($pNums.ContainsKey($pn)) { Add-Issue $nf.Name ($j + 1) 'md-pdup' ("P$pn 与 " + $pNums[$pn] + " 重号（判据编号必须全局唯一）") }
+                else { $pNums[$pn] = ("{0}:{1}" -f $nf.Name, ($j + 1)) }
+            }
+        }
+    }
+}
+
 $fail = @($issues | Where-Object Kind -eq 'syntax').Count
 $total = $issues.Count
 $hints = @($script:scopeHints)

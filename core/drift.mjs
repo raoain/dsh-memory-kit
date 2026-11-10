@@ -28,8 +28,14 @@ const BUS = join(ROOT, 'track', 'bus.jsonl')
 
 const dry = process.argv.includes('--dry')
 const now = Date.now()
-const WINDOW_MS = 30 * 60 * 1000 // the window prior art calls "short"; long windows need history we rotate away
-const SAMPLE_MS = 60 * 1000      // one sample per minute: a heartbeat burst must not drown the mean
+// 2026-11-10 用户：「它还是全系统唯一的时钟，那标准就可以以心跳为主」。
+// 所有时间量都用「拍」表示（1 拍 = spec.expect.time_base.interval_ms），
+// 心跳频率一改，窗口/采样/停机阈值全部跟着改，不用各处再改常量。
+const TIME_BASE = (SPEC.expect && SPEC.expect.time_base) || { interval_ms: 3000, beats: {} }
+const BEAT_MS = Number(TIME_BASE.interval_ms || 3000)
+const BEATS = TIME_BASE.beats || {}
+const WINDOW_MS = Number(BEATS.short_window || 600) * BEAT_MS // 短窗口 = 600 拍
+const SAMPLE_MS = Number(BEATS.sample || 20) * BEAT_MS // 每个采样点 20 拍
 
 function readBus() {
   const out = []
@@ -61,11 +67,18 @@ const cutoff = now - WINDOW_MS
 // needs a longer window than the fast one -- building the index from a pre-cut array was a
 // real bug (2026-11-08): the per-organ window could not reach data the index had dropped.
 const DATA_START = bus.reduce((m, r) => { const v = Number(r.ts); return v && (m === 0 || v < m) ? v : m }, 0)
+// 2026-11-10 去重：放电会把行追加进当天归档，而 bus-rotate 跨天也会写同一个归档文件，
+// 同一条信号可能出现两次。ts 相同就只算一次，否则样本数与「缺拍比例」都会被放大。
 const bySrc = new Map()
+const seenTs = new Set()
 for (const r of bus) {
+  const ts = Number(r.ts)
+  const key = String(r.src) + '|' + ts
+  if (seenTs.has(key)) continue
+  seenTs.add(key)
   const k = String(r.src)
   if (!bySrc.has(k)) bySrc.set(k, [])
-  bySrc.get(k).push(Number(r.ts))
+  bySrc.get(k).push(ts)
 }
 const inWindow = bus.filter((r) => Number(r.ts) >= cutoff)
 
@@ -79,55 +92,137 @@ const inWindow = bus.filter((r) => Number(r.ts) >= cutoff)
 // outage away. 103 s of death inside 1800 s of window is only 6% of samples.
 // Fix = what SLO burn-rate alerting actually does: judge SEVERAL windows at once and take
 // the worst. A short window catches acute failure; a long one catches slow decay.
-function violatedSamples(stamps, limitMs, winMs, dataStart) {
-  if (!stamps.length) return { violated: 0, total: 0, last: null, window_ms: winMs }
+// 2026-11-10 用户：「自己对比一下，两方面记录不就好了吗？一方面有记录就代表肯定坏了，
+// 但这两方面都是差不多时间停的，这代表肯定是关机了」。
+// 所以判据不是固定阈值，而是**两边对比**：
+//   心跳停 且 器官也停，同一时间 → 关机/宿主停摆（不算器官的错）；
+//   心跳在跳 而器官停 → 才是器官真坏了。
+// 心跳 3 秒一跳，所以任何 >9 秒的缺口都说明"宿主没在跑"；>30 分钟的算关机，其余算宿主停顿。
+const HB_LIMIT_MS = Number((SPEC.expect && SPEC.expect.heartbeat && SPEC.expect.heartbeat.interval_ms) || 3000) *
+  Number((SPEC.expect && SPEC.expect.heartbeat && SPEC.expect.heartbeat.tolerance) || 3)
+const SHUTDOWN_MIN_MS = Number(BEATS.shutdown || 600) * BEAT_MS // 关机阈值 = 600 拍
+// busyStamps = 除心跳外所有器官的时间戳。一个心跳缺口如果**别的器官在里面报过**
+// 就不是关机（整机在跑，停的只是心跳），标记成 heart-stall，且不拿它去替器官开脱。
+function hostPauses(hbStamps, busyStamps = []) {
+  const s = [...hbStamps].sort((a, b) => a - b)
+  const out = []
+  for (let i = 1; i < s.length; i++) {
+    const gap = s[i] - s[i - 1]
+    if (gap <= HB_LIMIT_MS) continue
+    const alive = busyStamps.some((t) => t > s[i - 1] && t < s[i])
+    out.push({
+      from: s[i - 1],
+      to: s[i],
+      ms: gap,
+      kind: alive ? 'heart-stall' : gap > SHUTDOWN_MIN_MS ? 'shutdown' : 'stall',
+      organs_alive: alive,
+    })
+  }
+  return out
+}
+
+function violatedSamples(stamps, limitMs, winMs, dataStart, pauses = []) {
+  if (!stamps.length) return { violated: 0, total: 0, last: null, window_ms: winMs, paused: 0 }
   const from = now - winMs
   const sorted = [...stamps].sort((a, b) => a - b)
   let violated = 0
   let total = 0
+  let paused = 0
   for (let t = from; t <= now; t += SAMPLE_MS) {
     // 2026-11-09: the stream is discharged after ~1 hour, so the oldest part of a 2-hour or
     // 4-day window has no data at all. "No data" is not "no signal": only judge a sample when
     // the observation window could actually have contained one.
     if (t - limitMs < dataStart) continue
+    // 两边对比（2026-11-10 用户：「心脏都停了，其他的玩意儿还有记录在表，坏得很彻底；
+    // 或者心跳一般有记录、其他的没有」）：
+    //   心跳停 + 这个器官**在这个区间里也没有记录** → 关机，不算它违约；
+    //   心跳停 + 这个器官**有记录** → 不是关机，是心跳自己坏了，剩下照判，不能替它开脱。
+    const p = pauses.find((x) => t > x.from && t < x.to)
+    if (p) {
+      const organAliveInPause = sorted.some((s) => s > p.from && s < p.to)
+      if (!organAliveInPause) { paused++; continue }
+    }
     total++
     let last = null
     for (const s of sorted) { if (s <= t) last = s; else break }
     const age = last === null ? Infinity : t - last
     if (age > limitMs) violated++
   }
-  return { violated, total, last: sorted[sorted.length - 1], window_ms: winMs }
+  return { violated, total, last: sorted[sorted.length - 1], window_ms: winMs, paused }
 }
 
+const MIN_SAMPLES = Number(BEATS.min_samples || 8)
 const esper = SPEC.expect
 const rows = []
 
 // window set: the short one guards against acute failure, the long one against slow decay.
 // Both must be longer than the observed period (a window shorter than the period measures
 // the window, not the organ).
-function windowsFor(limitMs) {
-  const short = Math.max(5 * 60 * 1000, limitMs * 2)
-  const long = Math.max(30 * 60 * 1000, limitMs * 2)
+function windowsFor(limitMs, everyMs = 0) {
+  // 2026-11-10 修（考试题 T1）：窗口必须装得下足够多的拍，否则量的是"格子太少"不是"器官坏了"。
+  // pulse(every=30min) 原来只拿到 2 小时窗口 = 4 格，缺两拍就 50% → broken，而它自报 state 0。
+  const minBySamples = everyMs > 0 ? everyMs * MIN_SAMPLES : 0
+  const short = Math.max(5 * 60 * 1000, limitMs * 2, minBySamples)
+  const long = Math.max(30 * 60 * 1000, limitMs * 2, minBySamples)
   return short === long ? [long] : [short, long]
 }
 
-function judge(what, limitMs, stamps) {
-  const wins = windowsFor(limitMs)
+function judge(what, limitMs, stamps, everyMs = 0, pauses = []) {
+  const wins = windowsFor(limitMs, everyMs)
   let worst = { violated: 0, total: 0, bp: 0, window_ms: 0 }
   for (const w of wins) {
-    const st = violatedSamples(stamps, limitMs, w, DATA_START)
+    const st = violatedSamples(stamps, limitMs, w, DATA_START, pauses)
     const bp = st.total ? Math.round((st.violated / st.total) * 10000) : 0
     if (bp > worst.bp) worst = { ...st, bp, window_ms: w }
   }
   // also keep the acute reading separately so a short outage is never hidden by a long window
-  const acute = violatedSamples(stamps, limitMs, wins[0], DATA_START)
+  const acute = violatedSamples(stamps, limitMs, wins[0], DATA_START, pauses)
   const acuteBp = acute.total ? Math.round((acute.violated / acute.total) * 10000) : 0
-  return { what, limit_ms: limitMs, bp: worst.bp, window_ms: worst.window_ms, acute_bp: acuteBp, last: worst.last }
+  // 样本数 = 窗口内**真实信号条数**，不是网格点数：网格点永远够，用它判会永远"够"
+  const from = now - (worst.window_ms || wins[0])
+  const observed = [...stamps].filter((t) => t >= from).length
+  const insufficient = everyMs > 0 && observed < MIN_SAMPLES
+  return {
+    what,
+    limit_ms: limitMs,
+    bp: insufficient ? null : worst.bp,
+    window_ms: worst.window_ms,
+    acute_bp: insufficient ? null : acuteBp,
+    samples: observed,
+    // 这一轮有多少采样点是因为"宿主没在跑"而被跳过——它是"关机不算违约"的账
+    paused_skipped: Number(worst.paused || 0),
+    insufficient_samples: insufficient || undefined,
+    last: worst.last,
+  }
 }
 
-// 1) heartbeat
-const hbLimit = esper.heartbeat.interval_ms * esper.heartbeat.tolerance
-rows.push(judge('heartbeat', hbLimit, bySrc.get('7') || []))
+// 1) heartbeat —— 只测量，不判（2026-11-10 用户：「以前是没中枢，现在有总中枢了，就该给他管」）。
+// 限值、tier、state 全由 consolidate 的 verdict.heart 判；这里只交 last / gap_ms。
+// 原来这里也用 spec.expect.heartbeat 算了一遍 limit 和 bp，同一条规则在两个地方各读一次 spec。
+const hbStamps = (bySrc.get('7') || []).slice().sort((a, b) => a - b)
+const hbLast = hbStamps.length ? hbStamps[hbStamps.length - 1] : null
+// 反向证据（2026-11-10 用户）：「心跳一般有记录、其他的没有」是别人坏了；
+// 反过来「心跳停、其他还有记录」就是心跳自己坏了。所以这里数一下：
+// 在心跳的停顿区间里，别的器官是否还在报。
+const busyStamps = bus.filter((r) => String(r.src) !== '7').map((r) => Number(r.ts))
+const hbPauses = hostPauses(hbStamps, busyStamps)
+let aliveDuringPause = 0
+for (const p of hbPauses) {
+  for (const r of bus) {
+    if (String(r.src) === '7') continue
+    const ts = Number(r.ts)
+    if (ts > p.from && ts < p.to) aliveDuringPause++
+  }
+}
+rows.push({
+  what: 'heartbeat',
+  last: hbLast,
+  gap_ms: hbLast ? now - hbLast : null,
+  window_ms: 0,
+  samples: hbStamps.length,
+  // >0 说明心跳停的时候别人还在报 → 停的是心跳，不是整机
+  alive_during_pause: aliveDuringPause,
+})
 
 // 2) organs with a cadence
 for (const [id, cell] of Object.entries(REG.cells || {})) {
@@ -135,7 +230,11 @@ for (const [id, cell] of Object.entries(REG.cells || {})) {
   const every = Number(cell.every ?? 0)
   if (!(every > 0)) continue
   const limit = every * 60 * 1000 * 2
-  rows.push(judge(`organ_${id}_${cell.id}`, limit, bySrc.get(String(id)) || []))
+  // 两边对比：只有「心跳停 且 这个器官在里面也没报」的区间才算关机，可以用来免它的违约；
+  // 心跳停但器官在报（heart-stall）不能拿来替器官开脱。
+  const hostPauseList = hbPauses.filter((p) => p.kind !== 'heart-stall')
+  // 把该器官自己的节律传进去：窗口要装得下至少 MIN_SAMPLES 拍（2026-11-10 T1）
+  rows.push(judge(`organ_${id}_${cell.id}`, limit, bySrc.get(String(id)) || [], every * 60 * 1000, hostPauseList))
 }
 
 // the reported value is the worst of (worst window bp, acute window bp). The acute reading is
@@ -182,7 +281,7 @@ const snap = { at: new Date().toISOString(), rows: rows.map((r) => ({ organ: org
 const history = [...prevHistory, snap].slice(-HISTORY_KEEP)
 const raw = {
   at: snap.at,
-  rows: rows.map((r) => ({ what: r.what, organ: organOf(r.what), last: r.last || null, bp: r.bp || 0, window_ms: r.window_ms || 0 })),
+  rows: rows.map((r) => ({ what: r.what, organ: organOf(r.what), last: r.last || null, gap_ms: r.gap_ms === undefined ? null : r.gap_ms, bp: r.bp === null ? null : r.bp || 0, window_ms: r.window_ms || 0, samples: r.samples || 0, paused_skipped: r.paused_skipped || 0, alive_during_pause: r.alive_during_pause === undefined ? null : r.alive_during_pause, insufficient_samples: r.insufficient_samples || false })),
   heartbeat: rows.find((r) => r.what === 'heartbeat') || null,
   worst_bp: worstBp,
   history,
