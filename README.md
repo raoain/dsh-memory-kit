@@ -128,7 +128,7 @@ notebook\    十四页，按「谁读它」分层
 
 core\        逻辑核心
   spec.json      契约（唯一出处）
-  registry.json  14 个器官位 + 两类分法
+  registry.json  21 个器官位（19 个有实现）+ 两类分法
   bus.mjs        写总线      adapter.mjs     器官输出 → 标准信号
   reflex.mjs     中枢（3 秒一跳，只转发不加工）
   dispatch.mjs   点对点派发  pulse.mjs       按 every 查节律
@@ -138,11 +138,11 @@ core\        逻辑核心
 
 track\       运行痕迹
   bus.jsonl           当前天的信号   archive\  归档（原始行不删）
-  state.json          引脚 102 项    baseline.json  静态自体 19 项
+  state.json          引脚 103 项    baseline.json  静态自体 19 项
   self-baseline.json  动态自体      脚手架清单.md  借来的五样
   脚本清单.md         自动生成     待消化.md      暂存
 
-*.ps1        42 个脚本（器官 6 + 工具 36）
+*.ps1        43 个脚本；core/*.mjs 50 个（器官 + 工具）
 ```
 
 **注意**：`track\脚本清单.md` 是自动生成的，别手改；重新生成用 `node scripts-inventory.mjs`。
