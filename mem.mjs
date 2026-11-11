@@ -21,24 +21,38 @@ const LAYERS = ['soul', 'user', 'project', 'fact', 'lesson', 'topic', 'rules']
 
 const [cmd, ...rest] = process.argv.slice(2)
 
+// 2026-11-11 用户：「思考层先做记忆，然后再思考运用」——先把存储层做成可读的结构：
+//   zone = <project>/<layer>（分区，给人看、给环按区读）
+//   seq  = 只增不改的编号，存在 track\mem-seq.json，同一 id 永远同一个号（删号留空，不重排）
+const SEQ_FILE = join(ROOT, 'track', 'mem-seq.json')
+function loadSeq() { try { return JSON.parse(readFileSync(SEQ_FILE, 'utf8')) } catch { return {} } }
+function saveSeq(m) { try { writeFileSync(SEQ_FILE, JSON.stringify(m, null, 2), 'utf8') } catch { /* 写不进不阻断导出 */ } }
+
 function dump() {
   const db = new DatabaseSync(DB, { readOnly: true })
+  const seq = loadSeq()
+  let maxSeq = Math.max(0, ...Object.values(seq).map((n) => Number(n) || 0))
   const rows = []
   for (const layer of LAYERS) {
     let list = []
     try { list = db.prepare(`select * from ${layer}`).all() } catch { continue }
     for (const r of list) {
+      const project = r.project ?? ''
+      const zone = project ? `${project}/${layer}` : layer
+      if (!seq[r.id]) { maxSeq += 1; seq[r.id] = maxSeq }
       rows.push({
-        id: r.id, layer, project: r.project ?? '', subcategory: r.subcategory ?? '',
+        id: r.id, layer, project, subcategory: r.subcategory ?? '',
+        zone, seq: seq[r.id],
         status: r.status ?? 'active', importance: Number(r.importance ?? 1),
         content: r.content ?? '', keywords: r.keywords ?? '',
         updated_at: Number(r.updated_at ?? 0),
       })
     }
   }
+  saveSeq(seq)
   const active = rows.filter((r) => r.status === 'active' || r.status === 'stale')
   writeFileSync(OUT, active.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf8')
-  console.log(JSON.stringify({ ok: true, total: rows.length, exported: active.length, out: OUT }))
+  console.log(JSON.stringify({ ok: true, total: rows.length, exported: active.length, seq_assigned: maxSeq, out: OUT }))
 }
 
 // 中文按 bigram 切；英文/数字按词切

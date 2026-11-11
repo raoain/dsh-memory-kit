@@ -503,6 +503,21 @@
       "covers": [
         "organ_intake"
       ]
+    },
+    {
+      "id": "organ-key-helper",
+      "owner": "coo-day1",
+      "failure": "hand-written organ name/id lookup outside core/organs.mjs: one missed conversion silently reads 0 (cleared was read as 0 on 2026-11-11)",
+      "enforced_by": {
+        "file": "core/immunity.mjs",
+        "pattern": "organ-key-helper"
+      },
+      "live_check": "organ-key-helper",
+      "tier": "reflex",
+      "docs": "core/organs.mjs",
+      "covers": [
+        "id"
+      ]
     }
   ]
 }

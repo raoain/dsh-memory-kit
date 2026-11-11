@@ -17,6 +17,7 @@ import { readFileSync, writeFileSync, appendFileSync, existsSync } from 'node:fs
 import { join } from 'node:path'
 import { spawn } from 'node:child_process'
 import { ROOT } from './root.mjs'
+import { numOf } from './organs.mjs'
 
 const STATE = join(ROOT, 'track', '.arbiter.json')
 const LOG = join(ROOT, 'track', 'dispatch.jsonl')
@@ -46,8 +47,7 @@ export function requestSpawn({ from, id, path, reason = '', rush = 0, tier = 0, 
   try {
     const reg = JSON.parse(readFileSync(join(ROOT, 'core', 'registry.json'), 'utf8'))
     const spec = JSON.parse(readFileSync(join(ROOT, 'core', 'spec.json'), 'utf8'))
-    const entry = Object.entries(reg.cells || {}).find(([, c]) => String(c.id) === String(id))
-    const organNo = entry ? entry[0] : null
+    const organNo = numOf(id)
     const st = existsSync(STRESS) ? JSON.parse(readFileSync(STRESS, 'utf8')) : {}
     const one = organNo ? st[String(organNo)] : null
     const urgentAt = Number((spec.expect && spec.expect.drift && spec.expect.drift.tier_urgent_after) || 20)

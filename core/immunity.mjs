@@ -470,6 +470,21 @@ const CHECKS = {
     const miss = cells.filter((c) => !existsSync(join(ROOT, c.path)))
     return { ok: miss.length === 0, detail: miss.length ? zh('imm.15', miss.map((c) => c.id).join(',')) : zh('imm.16', cells.length) }
   },
+  'organ-key-helper': () => {
+    // 2026-11-11 用户：同根因第二次就做成检查。器官「名字 ↔ 编号」的换算只有 core/organs.mjs 一个入口；
+    // 别处再手写这段查找就点名单（今天真踩：一处漏换号，cleared 静默读成 0）。
+    const bad = []
+    for (const rel of coreMjs) {
+      if (rel.endsWith('organs.mjs') || rel.endsWith('immunity.mjs')) continue
+      const txt = readText(rel) || ''
+      txt.split('\n').forEach((line, i) => {
+        const s = line.replace(/\r$/, '')
+        if (s.trim().startsWith('//')) return
+        if (/String\(c\.id\)\s*===\s*String/.test(s)) bad.push(`${rel}:${i + 1}`)
+      })
+    }
+    return { ok: bad.length === 0, detail: bad.length ? zh('imm.orgkey', bad.join(',')) : zh('imm.orgkey-ok') }
+  },
   'probe-fresh': () => {
     const p = join(ROOT, 'track', '.probe-last.json')
     if (!existsSync(p)) return { ok: false, detail: zh('lit.6') }

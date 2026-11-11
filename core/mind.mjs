@@ -23,6 +23,7 @@ import { join } from 'node:path'
 import { ROOT } from './root.mjs'
 import { emit } from './bus.mjs'
 import { requestSpawn } from './arbiter.mjs'
+import { numOf, cellOf, everyOf } from './organs.mjs'
 
 const SELF = '21'
 const BUS = join(ROOT, 'track', 'bus.jsonl')
@@ -232,6 +233,10 @@ if (plan) {
     }
     // 2026-11-10 用户：「要下发就得看时效性」。回放的旧数据只当想一遍，不许真派。
     if (plan && plan.replayed) { l2 = { ...l2, move: null, why_stale: "replayed input: too old to dispatch", original_move: l2.move } }
+    // 2026-11-11：把「严重度/紧急度」带进 L2，后面要在多条里选一条（判断力），需要可比较的键
+    l2.tier = Number(it.tier || 0)
+    l2.rush = Number(it.rush || 0)
+    l2.kind = it.kind || null
     thought.L2.push(l2)
   }
   // 2026-11-10 用户：「让他读就行了，这个是他环的一部分，这个是必跑的」——
@@ -273,8 +278,7 @@ if (plan) {
     const item = thought.L1[i]
     if (item.carried) { thought.L3.checked++; continue }
     thought.L3.checked++
-    const organEntry = Object.entries(REG.cells || {}).find(([, c]) => String(c.id) === String(item.id))
-    const organNo = organEntry ? organEntry[0] : null
+    const organNo = numOf(item.id)
     if (replayInput) { thought.L3.recheck = thought.L3.recheck || []; thought.L3.recheck.push({ id: item.id, note: 'replayed input: independent recheck skipped (time does not match)' }); continue }
     if (!organNo) { item.demoted = true; thought.L3.demoted.push({ id: item.id, why: "no organ number, cannot re-read" }); continue }
     const cell = (REG.cells || {})[organNo] || {}
@@ -383,6 +387,112 @@ if (forceIdle || thought.L1.length === 0) {
 const backed = thought.L1.filter((x) => !x.demoted).length
 const canMove = thought.L2.filter((x) => x.move).length
 
+// 2026-11-11 用户：
+//  · 排序用「离超期最近先」+「等越久权重越高」（EDF + aging，先人做法）
+//  · 派了没效不要「像机器一样停」：**先发一条过去，看有没有用；没用就改做法**
+// 所以：同分不报 conflict（那等于合法的瘫痪），按一条写死的次序挑；同一动作试够次数还没好转，
+// 就不再派同一个，改标 needs-new-move（换做法/求新办法），环不停。
+const SEVERITY = { broken: 3, silent: 2, late: 1, ok: 0 }
+const RETRY_LIMIT = 6 // 同一 (器官, 动作) 试过 6 次还没好转，就不许再重复同一个
+const heldById = new Map((workspace.items || []).map((x) => [String(x.id), Number(x.held_rounds || 0)]))
+
+function lastSignalTs (srcId) { // 该器官最后一条原始信号（判「离超期还有多久」用）
+  try {
+    const lines = readFileSync(BUS, 'utf8').trim().split(/\r?\n/)
+    for (let k = lines.length - 1; k >= 0; k--) {
+      let r; try { r = JSON.parse(lines[k]) } catch { continue }
+      if (String(r.src) === String(srcId)) return Number(r.ts)
+    }
+  } catch { /* 读不到就当没数据 */ }
+  return null
+}
+function attemptsOf (id, reason) { // 同一个 (器官, 动作) 已经派过几次
+  try {
+    const lines = readFileSync(join(ROOT, 'track', 'dispatch.jsonl'), 'utf8').trim().split(/\r?\n/)
+    let n = 0
+    for (const line of lines) {
+      let r; try { r = JSON.parse(line) } catch { continue }
+      if (String(r.cell) === String(id) && String(r.reason || '') === String(reason || '') && r.ok) n++
+    }
+    return n
+  } catch { return 0 }
+}
+function clearedOf (id) {
+  try {
+    const h = JSON.parse(readFileSync(join(ROOT, 'track', 'hippocampus.json'), 'utf8'))
+    const organs = h.organs || {}
+    // hippocampus 的 organs 按器官编号存（'18'），L2 里的 id 是名字（'consolidate'）——用 organs.mjs 换号
+    const num = numOf(id) || String(id)
+    const o = organs[num] || organs[String(id)] || {}
+    return Number(o.cleared || 0)
+  } catch { return 0 }
+}
+// EDF：松弛 = 2×every − 已经过去多久（越小越急）；没上报过 = 最急；按需器官（every=0）按 held 排
+function laxityOf (x) {
+  const every = everyOf(x.id)
+  if (!every) return 1e9 // 按需器官没有超期概念，排在有节律的后面
+  const last = lastSignalTs(numOf(x.id))
+  if (!last) return -1e9
+  return every * 2 * 60000 - (Date.now() - last)
+}
+const moveKey = (x) => [laxityOf(x), -Number(x.rush || 0), -SEVERITY[String(x.kind)] || 0, -(heldById.get(String(x.id)) || 0)]
+
+// 先剔掉「同一个动作已经试够次数、也没好转」的候选：不派同一个，要求换做法（环不停）
+const allCands = thought.L2.filter((x) => x && x.move)
+const cands = []
+for (const x of allCands) {
+  const tried = attemptsOf(x.id, String(x.move).replace('follow-prior-clear:', ''))
+  const cleared = clearedOf(x.id)
+  // 判「没效」不看绝对次数，看好转率：试了 20 次只 clear 过 1 次，仍然算没效
+  const ineffective = tried >= RETRY_LIMIT && cleared * 5 < tried
+  if (ineffective) {
+    x.original_move = x.move
+    x.move = null
+    x.how = 'needs-new-move'
+    x.why = `same move tried ${tried} time(s) without clearing (limit ${RETRY_LIMIT}); stop repeating it, a different move is needed`
+    x.needs_new_move = true
+    if (!dry) try {
+      appendFileSync(join(ROOT, 'track', 'escalate.jsonl'), JSON.stringify({
+        at: new Date().toISOString(), organ: String(x.id), tried: x.original_move, tried_times: tried,
+        diagnosis: 'method-ineffective', why_failed: `same move ${tried} times, never cleared`,
+        next: 'rethink: propose a different move before dispatching again', from: 'mind'
+      }) + '\n', 'utf8')
+    } catch { /* 写不进也不阻断这一轮 */ }
+  } else {
+    cands.push(x)
+  }
+}
+if (cands.length > 1) {
+  const sorted = cands.slice().sort((a, b) => {
+    const ka = moveKey(a); const kb = moveKey(b)
+    for (let i = 0; i < ka.length; i++) if (kb[i] !== ka[i]) return kb[i] - ka[i]
+    return String(a.id).localeCompare(String(b.id))
+  })
+  const top = sorted[0]
+  for (const x of cands) {
+    if (x === top) continue
+    x.move = null
+    x.how = 'deferred-by-selection'
+    x.why = `selected ${top.id} (laxity ${Math.round(laxityOf(top) / 1000)}s, kind ${top.kind || '-'}) over ${x.id} (laxity ${Math.round(laxityOf(x) / 1000)}s, kind ${x.kind || '-'}); one at a time`
+    x.deferred_to = top.id
+  }
+  thought.selected = { id: top.id, how: 'by-laxity-aging', candidates: cands.length, deferred: cands.filter((x) => x !== top).map((x) => x.id) }
+} else if (cands.length === 1) {
+  thought.selected = { id: cands[0].id, how: 'only-one', candidates: 1, deferred: [] }
+} else if (allCands.length) {
+  thought.selected = { id: null, how: 'needs-new-move', candidates: 0, blocked: allCands.map((x) => x.id) }
+}
+
+// 2026-11-11 用户：「先活着，才谈意识」——数核必须被读回才算承重，所以这里从上一轮的量推本轮的走向，
+// 并让它真的影响输出（summary + 上报 state），不再只是写进 nucleus.json 完事。
+const priorCur = prevNucleus && prevNucleus.cur ? prevNucleus.cur : null
+const trend = !priorCur
+  ? 'unknown'
+  : (Number(backed) < Number(priorCur.backed || 0) || thought.L3.demoted.length > Number(priorCur.demoted || 0))
+    ? 'worsening'
+    : Number(backed) > Number(priorCur.backed || 0) ? 'improving' : 'flat'
+thought.trend = trend
+
 // 2026-11-10 闭环：想完了要有人做。L2 里凡是"照先例"给出的做法，走同一条下传口（arbiter）
 // 去派活——冷却和"一次只放一个"都还在那里，不在这里重写。做完把"有没有派出去"记回 L2，
 // 下一轮和 dispatch.jsonl 一起就能回答"我上轮想的有没有被执行"。
@@ -391,15 +501,14 @@ for (const mv of thought.L2) {
   const reason = String(mv.move).slice('follow-prior-clear:'.length)
   const target = Object.entries(REMEDY).find(([, r]) => r === reason)
   if (!target) { mv.dispatched = false; mv.why_not = `no organ in spec.brain.mechanical maps to ${reason}`; continue }
-  const cellEntry = Object.entries(REG.cells || {}).find(([, c]) => String(c.id) === String(target[0]))
-  const cell = cellEntry ? cellEntry[1] : null
+  const cell = cellOf(target[0])
   if (!cell || !cell.path) { mv.dispatched = false; mv.why_not = 'target organ has no path'; continue }
   const v = requestSpawn({ from: SELF, id: cell.id, path: cell.path, reason, rush: 2, tier: 2 })
   mv.dispatched = v ? v.released !== false : false
   mv.dispatch = v || null
 }
 thought.dispatched = thought.L2.filter((x) => x.dispatched).length
-thought.summary = `L1 ${thought.L1.length} (backed ${backed}) / L2 ${canMove} movable / L3 checked ${thought.L3.checked} demoted ${thought.L3.demoted.length} / dispatched ${thought.dispatched}`
+thought.summary = `L1 ${thought.L1.length} (backed ${backed}) / L2 ${canMove} movable / L3 checked ${thought.L3.checked} demoted ${thought.L3.demoted.length} / dispatched ${thought.dispatched} / trend ${trend} / selected ${thought.selected ? (thought.selected.id || thought.selected.how) : 'none'} of ${allCands.length}`
 
 // 数核：把这一轮压成向量，和上一轮比（delta），然后写回，交给下一轮。
 const vital = (() => { try { return JSON.parse(readFileSync(join(ROOT, 'track', 'center.json'), 'utf8')).vital || {} } catch { return {} } })()
@@ -428,7 +537,7 @@ if (dry) {
   writeFileSync(NUCLEUS, JSON.stringify(nucleus, null, 2), 'utf8')
   writeFileSync(STATE + '.tmp', JSON.stringify({ rounds: thought.round, lastThought: thought.at, summary: thought.summary }, null, 2), 'utf8')
   writeFileSync(STATE, JSON.stringify({ rounds: thought.round, lastThought: thought.at, summary: thought.summary }, null, 2), 'utf8')
-  if (plan) emit(SELF, 4, thought.L3.demoted.length ? 1 : 0, thought.L1.length, `mind:${backed}/${thought.L1.length}`, { rush: 0, topic: 'mind.thought', summary: thought.summary })
+  if (plan) emit(SELF, 4, (thought.L3.demoted.length || trend === 'worsening') ? 1 : 0, thought.L1.length, `mind:${backed}/${thought.L1.length}`, { rush: 0, topic: 'mind.thought', summary: thought.summary })
   writeFileSync(HABITS, JSON.stringify(habits, null, 2), 'utf8')
   // 工作区写回：下一轮读它接着想（前额叶那格）
   writeFileSync(WORKSPACE, JSON.stringify(workspace, null, 2) + '\n', 'utf8')

@@ -174,5 +174,7 @@
   "zone.limb": "肢体区",
   "zone.tools": "工具",
   "zone.os": "支撑",
-  "zone.thinking": "思考层"
+  "zone.thinking": "思考层",
+  "imm.orgkey": "手写器官查找 {0} 处（应改用 core/organs.mjs 的 numOf/cellOf/everyOf）",
+  "imm.orgkey-ok": "器官名字与编号的换算只有 core/organs.mjs 一个入口，没有手写查找"
 }
