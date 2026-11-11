@@ -23,7 +23,7 @@ import { spawnSync } from 'node:child_process'
 import { ROOT } from './root.mjs'
 import { emit } from './bus.mjs'
 
-const SELF = '16'
+const SELF = 16
 const PIN = join(ROOT, 'pin.ps1')
 const STATE = join(ROOT, 'state.json')
 const TRACK = join(ROOT, 'track')

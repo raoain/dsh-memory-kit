@@ -26,7 +26,7 @@ import { ROOT } from './root.mjs'
 const BUS = join(ROOT, 'track', 'bus.jsonl')
 const BASE = join(ROOT, 'track', 'self-baseline.json')   // 动态自体（信号轮廓）；静态自体在 baseline.json，由 baseline.ps1 写
                                                           // 2026-11-08 拆开：两个写者共用一个文件，谁写谁覆盖另一拨
-const SELF = '8'
+const SELF = 8
 const SPEC = JSON.parse(readFileSync(join(ROOT, 'core', 'spec.json'), 'utf8'))
 const cells = JSON.parse(readFileSync(join(ROOT, 'core', 'registry.json'), 'utf8')).cells
 const WINDOW = 40          // how many recent signals make "a day"

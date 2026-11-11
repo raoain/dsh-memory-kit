@@ -22,7 +22,7 @@ import { emit } from './bus.mjs'
 // root comes from core/root.mjs -- do not hardcode the path here
 import { ROOT } from './root.mjs'
 const BUS = join(ROOT, 'track', 'bus.jsonl')
-const SELF = '9'
+const SELF = 9
 const SPEC = JSON.parse(readFileSync(join(ROOT, 'core', 'spec.json'), 'utf8'))
 const GRACE = 2 // 超过 every 的 2 倍才算饿
 

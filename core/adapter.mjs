@@ -74,4 +74,16 @@ if (!parsed) {
 const rushTable = SPEC.map?.state_to_rush || { 0: 0, 1: 1, 2: 2, 3: 1 }
 const derivedRush = Number(rushTable[String(parsed.state)] ?? 1)
 const rush = parsed.rush === undefined ? derivedRush : Number(parsed.rush)
-console.log(JSON.stringify(emit(cellId, parsed.kind, parsed.state, parsed.value, parsed.evid, { counts: parsed.counts, rush })))
+// 2026-11-11 用户：「这种表建了你按表来呀」——渠道三档的归属写在 spec.channels.map 里，
+// adapter 只查表、不自己判；表里没有的器官落到 spec.channels.default（现在 slow）。
+function channelOf (cellId) {
+  const C = SPEC.channels || {}
+  const one = (C.fast && C.fast.id) || 'fast'
+  const map = C.map || {}
+  const def = C.default || 'slow'
+  const v = map[String(cellId)]
+  if (v === one || v === 'steady' || v === 'slow') return v
+  return def
+}
+const channel = channelOf(cellId)
+console.log(JSON.stringify(emit(cellId, parsed.kind, parsed.state, parsed.value, parsed.evid, { counts: parsed.counts, rush, channel })))

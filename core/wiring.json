@@ -1,0 +1,73 @@
+{
+ "version": 1,
+ "note": "Nucleus wiring table (2026-11-11). One row per nucleus field: what changes upstream, which output moves downstream, and the literal marker that proves the wire is still in core/mind.mjs. Judgement is binary: either the marker is present (wired) or it is not (broken). No 'recorded but unused' state. Immunity check wiring-covered enforces this file against core/mind.mjs, so a row cannot claim a wire that no longer exists.",
+ "source": "track/mind/nucleus.json (cur + delta)",
+ "consumer": "core/mind.mjs",
+ "how_to_test": "change the field in nucleus.cur (or delta), run `node core/mind.mjs --dry`, read the output column; if it does not move, the wire is broken",
+ "vendor_note": "external systems can map their own counters onto these field ids and use the same table; the marker column is ours, the field ids are the contract",
+ "fields": [
+  {
+   "id": "items",
+   "reads": "cur.items, delta.items",
+   "effect": "focus cap +1",
+   "marker": "items-changed",
+   "observed_in": "focus.why"
+  },
+  {
+   "id": "demoted",
+   "reads": "cur.demoted",
+   "effect": "focus cap +1",
+   "marker": "demoted>0",
+   "observed_in": "focus.why"
+  },
+  {
+   "id": "trend",
+   "reads": "cur.trend",
+   "effect": "retry limit 6 -> 3, precedent suppressed, focus cap +1",
+   "marker": "worsening",
+   "observed_in": "summary (retry N / suppressed_precedent)"
+  },
+  {
+   "id": "backed",
+   "reads": "cur.backed",
+   "effect": "trend becomes worsening / improving / flat",
+   "marker": "improving",
+   "observed_in": "summary trend"
+  },
+  {
+   "id": "movable",
+   "reads": "cur.movable (written as effectiveMovable)",
+   "effect": "two rounds at 0 -> STUCK + escalate(no-legal-move)",
+   "marker": "STUCK movable=",
+   "observed_in": "summary, escalate.jsonl"
+  },
+  {
+   "id": "chronic",
+   "reads": "cur.chronic",
+   "effect": "rise -> CHRONIC + escalate(chronic-rising) + L2 escalate flag",
+   "marker": "CHRONIC ",
+   "observed_in": "summary, escalate.jsonl, L2.escalate"
+  },
+  {
+   "id": "habits",
+   "reads": "cur.habits",
+   "effect": "drop -> HABITLOSS, dispatch-habitual downgraded to dispatch",
+   "marker": "HABITLOSS ",
+   "observed_in": "summary, L2.how"
+  },
+  {
+   "id": "integration",
+   "reads": "cur.integration",
+   "effect": ">=0.5 -> focus cap -1 (narrow)",
+   "marker": "integ>=",
+   "observed_in": "focus.why"
+  },
+  {
+   "id": "differentiation",
+   "reads": "cur.differentiation",
+   "effect": ">=0.5 -> focus cap +1 (widen)",
+   "marker": "diff>=",
+   "observed_in": "focus.why"
+  }
+ ]
+}

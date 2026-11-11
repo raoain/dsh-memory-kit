@@ -20,7 +20,7 @@ import { emit } from './bus.mjs'
 import { ROOT } from './root.mjs'
 const BUS = join(ROOT, 'track', 'bus.jsonl')
 const ARCH = join(ROOT, 'track', 'archive')
-const SELF = '9' // pulse reports rotation too
+const SELF = 9 // pulse reports rotation too
 
 // 归档的格式不是自己定的，是 spec 定的（2026-11-08 spec v5 加了 archive 段）
 const spec = JSON.parse(readFileSync(join(ROOT, 'core', 'spec.json'), 'utf8'))

@@ -1,0 +1,237 @@
+[
+ {
+  "at": "2026-11-11T05:59:08.252Z",
+  "organ": "consolidate",
+  "kind": "late",
+  "why_failed": "same move tried 16 time(s), never cleared",
+  "review_after": "2026-11-12T05:59:08.252Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T05:59:08.255Z",
+  "organ": "backup",
+  "kind": "late",
+  "why_failed": "same move tried 20 time(s), never cleared",
+  "review_after": "2026-11-12T05:59:08.255Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T06:21:17.224Z",
+  "organ": "backup",
+  "kind": "late",
+  "why_failed": "same move tried 20 time(s), never cleared",
+  "review_after": "2026-11-12T06:21:17.224Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T06:21:17.276Z",
+  "organ": "consolidate",
+  "kind": "late",
+  "why_failed": "same move tried 16 time(s), never cleared",
+  "review_after": "2026-11-12T06:21:17.276Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T06:51:17.362Z",
+  "organ": "backup",
+  "kind": "late",
+  "why_failed": "same move tried 20 time(s), never cleared",
+  "review_after": "2026-11-12T06:51:17.362Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T06:51:17.375Z",
+  "organ": "consolidate",
+  "kind": "late",
+  "why_failed": "same move tried 16 time(s), never cleared",
+  "review_after": "2026-11-12T06:51:17.375Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T07:21:17.508Z",
+  "organ": "backup",
+  "kind": "late",
+  "why_failed": "same move tried 20 time(s), never cleared",
+  "review_after": "2026-11-12T07:21:17.508Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T07:21:17.533Z",
+  "organ": "consolidate",
+  "kind": "late",
+  "why_failed": "same move tried 16 time(s), never cleared",
+  "review_after": "2026-11-12T07:21:17.533Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T07:51:17.665Z",
+  "organ": "backup",
+  "kind": "late",
+  "why_failed": "same move tried 20 time(s), never cleared",
+  "review_after": "2026-11-12T07:51:17.665Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T07:51:17.674Z",
+  "organ": "consolidate",
+  "kind": "late",
+  "why_failed": "same move tried 16 time(s), never cleared",
+  "review_after": "2026-11-12T07:51:17.674Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T08:21:17.774Z",
+  "organ": "backup",
+  "kind": "late",
+  "why_failed": "same move tried 20 time(s), never cleared",
+  "review_after": "2026-11-12T08:21:17.774Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T08:21:17.790Z",
+  "organ": "consolidate",
+  "kind": "late",
+  "why_failed": "same move tried 16 time(s), never cleared",
+  "review_after": "2026-11-12T08:21:17.790Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T08:51:17.908Z",
+  "organ": "backup",
+  "kind": "late",
+  "why_failed": "same move tried 20 time(s), never cleared",
+  "review_after": "2026-11-12T08:51:17.908Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T08:51:17.923Z",
+  "organ": "consolidate",
+  "kind": "late",
+  "why_failed": "same move tried 16 time(s), never cleared",
+  "review_after": "2026-11-12T08:51:17.923Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T09:21:18.055Z",
+  "organ": "backup",
+  "kind": "late",
+  "why_failed": "same move tried 20 time(s), never cleared",
+  "review_after": "2026-11-12T09:21:18.055Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T09:21:18.074Z",
+  "organ": "consolidate",
+  "kind": "late",
+  "why_failed": "same move tried 16 time(s), never cleared",
+  "review_after": "2026-11-12T09:21:18.074Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T09:51:18.243Z",
+  "organ": "backup",
+  "kind": "late",
+  "why_failed": "same move tried 20 time(s), never cleared",
+  "review_after": "2026-11-12T09:51:18.243Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T09:51:18.255Z",
+  "organ": "consolidate",
+  "kind": "late",
+  "why_failed": "same move tried 16 time(s), never cleared",
+  "review_after": "2026-11-12T09:51:18.255Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T10:21:18.436Z",
+  "organ": "backup",
+  "kind": "late",
+  "why_failed": "same move tried 20 time(s), never cleared",
+  "review_after": "2026-11-12T10:21:18.436Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T10:21:18.446Z",
+  "organ": "consolidate",
+  "kind": "late",
+  "why_failed": "same move tried 16 time(s), never cleared",
+  "review_after": "2026-11-12T10:21:18.446Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T10:51:18.447Z",
+  "organ": "backup",
+  "kind": "late",
+  "why_failed": "same move tried 20 time(s), never cleared",
+  "review_after": "2026-11-12T10:51:18.447Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T10:51:18.462Z",
+  "organ": "consolidate",
+  "kind": "late",
+  "why_failed": "same move tried 16 time(s), never cleared",
+  "review_after": "2026-11-12T10:51:18.462Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T11:21:25.041Z",
+  "organ": "backup",
+  "kind": "late",
+  "why_failed": "same move tried 20 time(s), never cleared",
+  "review_after": "2026-11-12T11:21:25.041Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T11:21:25.738Z",
+  "organ": "consolidate",
+  "kind": "late",
+  "why_failed": "same move tried 16 time(s), never cleared",
+  "review_after": "2026-11-12T11:21:25.738Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T11:51:19.704Z",
+  "organ": "backup",
+  "kind": "late",
+  "why_failed": "same move tried 20 time(s), never cleared",
+  "review_after": "2026-11-12T11:51:19.704Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T11:51:20.114Z",
+  "organ": "consolidate",
+  "kind": "late",
+  "why_failed": "same move tried 16 time(s), never cleared",
+  "review_after": "2026-11-12T11:51:20.114Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T12:21:18.994Z",
+  "organ": "backup",
+  "kind": "late",
+  "why_failed": "same move tried 20 time(s), never cleared",
+  "review_after": "2026-11-12T12:21:18.994Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T12:21:19.012Z",
+  "organ": "consolidate",
+  "kind": "late",
+  "why_failed": "same move tried 16 time(s), never cleared",
+  "review_after": "2026-11-12T12:21:19.012Z",
+  "from": "mind"
+ },
+ {
+  "at": "2026-11-11T13:10:00.000Z",
+  "organ": "memory-format",
+  "kind": "format-debt",
+  "why_failed": "exporter emits DB field name; renaming needs mem.mjs change",
+  "review_after": "2026-11-18T00:00:00.000Z",
+  "from": "dump-format-debt",
+  "where": "memories.jsonl",
+  "field": "updated_at",
+  "fixed_by": "mem.mjs dump: emit updated_ts and ISO updated_at"
+ }
+]

@@ -293,6 +293,6 @@ if (dry) {
   renameSync(RAW_F + '.tmp', RAW_F)
   // 2026-11-09 断连修复：改成纯测量器以后它一条信号都不发了，于是自己在总线上"消失"，
   // pulse 报 never-reported、上游也没法确认它还活着。测量本身也是一条数据，照发。
-  emit('15', 4, 0, worstBp, `measure:${raw.rows.length}rows/${worstBp}bp`, { rush: 0, topic: 'measure' })
+  emit(15, 4, 0, worstBp, `measure:${raw.rows.length}rows/${worstBp}bp`, { rush: 0, topic: 'measure' })
   console.log(JSON.stringify({ measured: raw.rows.length, worst_bp: worstBp, history: history.length }))
 }

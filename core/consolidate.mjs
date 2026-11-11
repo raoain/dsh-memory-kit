@@ -23,7 +23,7 @@ import { join } from 'node:path'
 import { ROOT } from './root.mjs'
 import { emit } from './bus.mjs'
 
-const SELF = '18'
+const SELF = 18
 // 2026-11-09 用户：「直接覆盖：它先截断再写，你怎么这么喜欢热插拔？不能先停了再重写再启动嘛？」
 // 更根本的是"同一时刻只能有一个写者"：中枢这种会重写状态文件的器官，第二次启动应当直接退出，
 // 而不是两个人一起热替换。锁用排他创建（wx），和 loop.mjs 同一套做法；不杀进程，只是不让第二个进来。
@@ -69,6 +69,72 @@ const BEAT_MS = Number(TIME_BASE.interval_ms || 3000)
 const WINDOW_MIN = (Number((TIME_BASE.beats || {}).discharge || 900) * BEAT_MS) / 60000
 const STRESS = join(ROOT, 'track', '.stress.json')
 const dry = process.argv.includes('--dry')
+
+// 2026-11-11 用户：「分三档，恒定档、慢档、快档……上次没做完」——
+// 恒定档 = 只判心跳，每 60 秒跑一次；判据仍读 spec.expect.heartbeat（判据只有一处）。
+if (process.argv.includes('--heart')) {
+  const HB = (JSON.parse(readFileSync(join(ROOT, 'core', 'spec.json'), 'utf8')).expect || {}).heartbeat || {}
+  let limit = Number(HB.interval_ms || 3000) * Number(HB.tolerance || 3)
+  const limIdx = process.argv.indexOf('--limit-ms')
+  if (limIdx > 0) limit = Number(process.argv[limIdx + 1] || limit) // test hook only: never used in production
+  let last = 0
+  try {
+    for (const line of readFileSync(join(ROOT, 'track', 'bus.jsonl'), 'utf8').trim().split(/\r?\n/)) {
+      if (!line) continue
+      let r; try { r = JSON.parse(line) } catch { continue }
+      if (String(r.src) === '7') { const ts = Number(r.ts || 0); if (ts > last) last = ts }
+    }
+  } catch { /* no bus */ }
+  const gap = last ? Date.now() - last : null
+  const ok = gap !== null && gap <= limit
+  const state = ok ? 0 : 2
+  const out = { at: new Date().toISOString(), ok, gap_ms: gap, limit_ms: limit, last: last || null }
+  if (!dry) try {
+    const f = join(ROOT, 'track', 'center-heart.json')
+    const tmp = f + '.tmp'
+    writeFileSync(tmp, JSON.stringify(out, null, 1) + '\n', 'utf8')
+    renameSync(tmp, f)
+  } catch { /* keep going */ }
+  if (!dry) try {
+    emit(18, 1, state, gap || 0, ok ? `heart:gap=${Math.round((gap || 0) / 1000)}s/limit=${Math.round(limit / 1000)}s` : '/HEART-DOWN')
+  } catch { /* keep going */ }
+  console.log(JSON.stringify({ ok, state, gap_ms: gap, limit_ms: limit, dry }))
+  if (dry) process.exit(0)
+  process.exit(0)
+}
+
+
+// 2026-11-11 用户：「这一步得归到总中枢，这是他的任务，这是他的判决，然后下达做法呀」——
+// 进程死了该不该重启，由**中枢判**、写下达；supervisor 只执行。
+if (process.argv.includes('--judge-procs')) {
+  const EXITS = join(ROOT, 'track', 'proc-exit.jsonl')
+  const ORDERS = join(ROOT, 'track', 'proc-cmd.jsonl')
+  const SUP = ((JSON.parse(readFileSync(join(ROOT, 'core', 'spec.json'), 'utf8')).brain || {}).supervision) || {}
+  const maxR = Number(SUP.max_restarts_per_window || 3)
+  const windowMs = Number(SUP.window_s || 60) * 1000
+  const now = Date.now()
+  const events = []
+  try {
+    for (const line of readFileSync(EXITS, 'utf8').trim().split(/\r?\n/)) {
+      if (!line) continue
+      try { events.push(JSON.parse(line)) } catch { /* skip */ }
+    }
+  } catch { /* no events yet */ }
+  const last = events[events.length - 1]
+  if (!last) { console.log(JSON.stringify({ action: 'none', why: 'no process-exit events' })); process.exit(0) }
+  const recent = events.filter((e) => String(e.name) === String(last.name) && now - Number(e.ts || 0) < windowMs)
+  const action = recent.length > maxR ? 'stop' : 'restart'
+  const order = {
+    at: new Date().toISOString(), name: String(last.name), cell: String(last.cell ?? ''),
+    action, restarts_in_window: recent.length, max_restarts_per_window: maxR,
+    why: action === 'stop' ? `${recent.length} exits in ${Math.round(windowMs / 1000)}s: over the limit, hand to a person` : `${recent.length} exit(s) in window: restart the one that died`,
+    from: 'consolidate',
+  }
+  try { appendFileSync(ORDERS, JSON.stringify(order) + '\n', 'utf8') } catch { /* keep going */ }
+  console.log(JSON.stringify(order))
+  process.exit(0)
+}
+
 
 // 2026-11-09 事故：center.json 被并发写截成 0 字节，下一次启动 JSON.parse 直接抛错，
 // 中枢整个停摆。读要能扛住空文件，写要原子（tmp + rename）——截断只可能发生在替换前。

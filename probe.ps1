@@ -88,6 +88,40 @@ New-Item -ItemType Directory -Force -Path (Join-Path $pp 'notebook') | Out-Null
 $out10 = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'lint.ps1') -Path $pp 2>&1 | Out-String
 Add-Probe 'lint 抓判据重号' ($out10 -match 'md-pdup') $(if ($out10 -match 'md-pdup') { '报了 md-pdup' } else { '重号被放行 → 编号检查是哑炮' })
 
+# ── 11) 免疫 snapshot-fresh 吃过假样本：把基线时间拨到 40 小时前，必须报「旧」
+$bl = Join-Path $Root 'track\baseline.json'
+$blBak = $bl + '.probebak'
+if (Test-Path $bl) {
+    Copy-Item -LiteralPath $bl -Destination $blBak -Force
+    try {
+        $bj = Get-Content $bl -Raw -Encoding UTF8 | ConvertFrom-Json
+        $bj.snapAt = (Get-Date).AddHours(-40).ToString('o')
+        [IO.File]::WriteAllText($bl, ($bj | ConvertTo-Json -Depth 6), (New-Object Text.UTF8Encoding($false)))
+        $out11 = & node (Join-Path $Root 'core\immunity.mjs') 2>&1 | Out-String
+        Add-Probe '免疫抓过期快照' ($out11 -match 'snapshot-fresh') $(if ($out11 -match 'snapshot-fresh') { '报了 snapshot-fresh' } else { '基线拨到 40 小时前仍不报 → 快照检查是哑炮' })
+    } finally {
+        Copy-Item -LiteralPath $blBak -Destination $bl -Force
+        Remove-Item -LiteralPath $blBak -Force -ErrorAction SilentlyContinue
+    }
+}
+
+# ── 12) 免疫 wiring-covered 吃过假样本：往通断表塞一个代码里不存在的 marker，必须点名
+$wf = Join-Path $Root 'core\wiring.json'
+$wfBak = $wf + '.probebak'
+if (Test-Path $wf) {
+    Copy-Item -LiteralPath $wf -Destination $wfBak -Force
+    try {
+        $wj = Get-Content $wf -Raw -Encoding UTF8 | ConvertFrom-Json
+        $wj.fields += [pscustomobject]@{ id = 'ghost'; reads = 'cur.ghost'; effect = 'none'; marker = 'marker-that-does-not-exist-xyz'; observed_in = 'nowhere' }
+        [IO.File]::WriteAllText($wf, ($wj | ConvertTo-Json -Depth 6), (New-Object Text.UTF8Encoding($false)))
+        $out12 = & node (Join-Path $Root 'core\immunity.mjs') 2>&1 | Out-String
+        Add-Probe '免疫抓通断表撒谎' ($out12 -match 'ghost') $(if ($out12 -match 'ghost') { '报了 ghost:marker-missing' } else { '写了不存在的线仍不报 → 通断表检查是哑炮' })
+    } finally {
+        Copy-Item -LiteralPath $wfBak -Destination $wf -Force
+        Remove-Item -LiteralPath $wfBak -Force -ErrorAction SilentlyContinue
+    }
+}
+
 # ── 输出
 Write-Host ''
 Write-Host '=== 探针结果 ===' -ForegroundColor Cyan

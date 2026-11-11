@@ -9,9 +9,11 @@
 //   node mem.mjs stats                 # 看索引导出情况
 
 import { readFileSync, writeFileSync, appendFileSync, existsSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { DatabaseSync } from 'node:sqlite'
 import { join } from 'node:path'
 import { ROOT } from './core/root.mjs'
+import { search, loadDocs } from './core/memsearch.mjs'
 
 // DB 是外部的（meow 数据目录），不属于本项目根，所以它走环境变量 + 显式默认值
 const DB = process.env.MEOW_DB || 'C:/Users/Administrator/Documents/deepseek-harness/default-workspace/.dsh-meow/memory.db'
@@ -25,10 +27,39 @@ const [cmd, ...rest] = process.argv.slice(2)
 //   zone = <project>/<layer>（分区，给人看、给环按区读）
 //   seq  = 只增不改的编号，存在 track\mem-seq.json，同一 id 永远同一个号（删号留空，不重排）
 const SEQ_FILE = join(ROOT, 'track', 'mem-seq.json')
+const HISTORY = join(ROOT, 'track', 'mem-history.jsonl')  // append-only: every superseded version
 function loadSeq() { try { return JSON.parse(readFileSync(SEQ_FILE, 'utf8')) } catch { return {} } }
 function saveSeq(m) { try { writeFileSync(SEQ_FILE, JSON.stringify(m, null, 2), 'utf8') } catch { /* 写不进不阻断导出 */ } }
 
-function dump() {
+function slugify (zone) {
+  // spec 存 ASCII slug；库里的层名可能是中文（全局），这里只做同一件事：归一成 slug 再查编号。
+  return String(zone || '').replace(/\u5168\u5c40/g, 'global')
+}
+function zoneIds () {
+  // 2026-11-11 用户：「给分区一个稳定数字编号」+「生物体不会瞎跑」：
+  // zone 是拼接出来的字符串，改名/合并就会漂；编号只增不改，改名只换映射里的名字。
+  try {
+    const s = JSON.parse(readFileSync(join(ROOT, 'core', 'spec.json'), 'utf8'))
+    const m = (s.data && s.data.zones && s.data.zones.map) || {}
+    const rev = {}
+    for (const [id, slug] of Object.entries(m)) rev[String(slug)] = id
+    return rev
+  } catch { return {} }
+}
+function originOf (content) {
+  // 母件是 notebook/2-档案 的 [观察] / [推断] / [待核]（老版本）；记忆层是它长大到整个记忆层的应用，
+  // 所以三档都要一起长上来：待核/未核实 -> unverified，不允许只存在于老版本里。
+  const hasQuote = /[\u201c\u300c"]/.test(content) && /[\u201d\u300d"]/.test(content)
+  const saysUser = /\u7528\u6237/.test(content)
+  const saysPending = /(\u5f85\u6838|\u672a\u6838\u5b9e|\u6ca1\u6838\u5b9e|\u4e0d\u786e\u5b9a)/.test(content)
+  const saysInfer = /(\u6211\u7684\u63a8\u65ad|\u63a8\u65ad|\u6211\u731c|\u6211\u7406\u89e3\u4e3a)/.test(content)
+  if (saysPending) return { origin: 'unverified', origin_why: 'contains a pending/unverified marker' }
+  if (saysUser && hasQuote) return { origin: 'stated', origin_why: 'mentions the user and carries a quote' }
+  if (saysUser) return { origin: 'stated', origin_why: 'mentions the user (no quote marks)' }
+  if (saysInfer) return { origin: 'inferred', origin_why: 'contains an inference phrase' }
+  return { origin: 'observed', origin_why: 'no user quote and no inference phrase: treated as observed run fact' }
+}function dump() {
+  const ZONE_ID = zoneIds()
   const db = new DatabaseSync(DB, { readOnly: true })
   const seq = loadSeq()
   let maxSeq = Math.max(0, ...Object.values(seq).map((n) => Number(n) || 0))
@@ -42,75 +73,64 @@ function dump() {
       if (!seq[r.id]) { maxSeq += 1; seq[r.id] = maxSeq }
       rows.push({
         id: r.id, layer, project, subcategory: r.subcategory ?? '',
-        zone, seq: seq[r.id],
+        zone, zone_id: ZONE_ID[slugify(zone)] || null, seq: seq[r.id],
         status: r.status ?? 'active', importance: Number(r.importance ?? 1),
+        // 2026-11-11 用户：「以后会用到这个篡改，自我引用一般就用上，都加」——
+        // origin = 这条是「stated（他原话）/ inferred（我推断）/ observed（我亲眼看到的运行事实）」。
+        // 导出时按正文规则判定，并把命中规则写进 origin_why，可复核；判不出的如实写 derived-uncertain。
+        ...originOf(String(r.content ?? '')),
         content: r.content ?? '', keywords: r.keywords ?? '',
         updated_at: Number(r.updated_at ?? 0),
       })
     }
   }
+  // 2026-11-11 用户：「没有错误版本和当时记录是吧」（回「1」= 要加）——
+  // 双时态 + 历史：内容被改写或状态被标死时，**旧的那一版原样进 history**（只追加），
+  // 每条导出带 valid_from / valid_to：还在用的 valid_to=null，被替代/标死的写上那次时间。
+  const PREV = (() => {
+    try {
+      const m = new Map()
+      for (const line of readFileSync(OUT, 'utf8').trim().split(/\r?\n/)) {
+        if (!line) continue
+        try { const r = JSON.parse(line); m.set(String(r.id), r) } catch { /* skip */ }
+      }
+      return m
+    } catch { return new Map() }
+  })()
+  const hist = []
+  for (const r of rows) {
+    const prev = PREV.get(String(r.id))
+    r.valid_from = prev && prev.valid_from ? prev.valid_from : (r.updated_at || Date.now())
+    r.valid_to = null
+    if (prev && String(prev.content) !== String(r.content)) {
+      hist.push({ at: new Date().toISOString(), seq: r.seq, id: r.id, zone_id: r.zone_id, sha16: createHash('sha256').update(String(prev.content)).digest('hex').slice(0, 16), why: 'content changed (old version kept as raw material)', reason: 'content-changed', valid_from: prev.valid_from || prev.updated_at || null, valid_to: r.updated_at || Date.now(), content: prev.content })
+    }
+    if (prev && prev.status !== r.status) {
+      hist.push({ at: new Date().toISOString(), seq: r.seq, id: r.id, zone_id: r.zone_id, sha16: createHash('sha256').update(String(prev.content)).digest('hex').slice(0, 16), why: 'status changed', reason: `status:${prev.status}->${r.status}`, valid_from: prev.valid_from || prev.updated_at || null, valid_to: Date.now(), content: prev.content })
+      if (r.status === 'archived') r.valid_to = Date.now()
+    }
+  }
+  if (hist.length) appendFileSync(HISTORY, hist.map((h) => JSON.stringify(h)).join('\n') + '\n', 'utf8')
   saveSeq(seq)
   const active = rows.filter((r) => r.status === 'active' || r.status === 'stale')
   writeFileSync(OUT, active.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf8')
   console.log(JSON.stringify({ ok: true, total: rows.length, exported: active.length, seq_assigned: maxSeq, out: OUT }))
 }
 
-// 中文按 bigram 切；英文/数字按词切
-function tokens(s) {
-  const t = String(s).toLowerCase()
-  const out = []
-  for (const w of t.match(/[a-z0-9_.\-]{2,}/g) ?? []) out.push(w)
-  const han = t.replace(/[^\u4e00-\u9fa5]/g, '')
-  for (let i = 0; i < han.length - 1; i++) out.push(han.slice(i, i + 2))
-  return out
-}
-
+// 检索实现搬进 core/memsearch.mjs（唯一实现，mind 也用同一套）；这里只负责 hits 回写与打印
 function find(query, k = 5) {
   if (!existsSync(OUT)) { console.error('没有索引，先跑 dump'); process.exit(1) }
-  const docs = readFileSync(OUT, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l))
-  const q = tokens(query)
-  const N = docs.length || 1
-  // 预计算 df
-  const df = new Map()
-  const docToks = docs.map((d) => tokens(`${d.content} ${d.keywords} ${d.project}`))
-  for (const toks of docToks) {
-    for (const t of new Set(toks)) df.set(t, (df.get(t) ?? 0) + 1)
-  }
-  const avgLen = docToks.reduce((a, t) => a + t.length, 0) / N || 1
-  const k1 = 1.2, b = 0.75
-  const now = Date.now()
-  const scored = docs.map((d, i) => {
-    const toks = docToks[i]
-    const len = toks.length || 1
-    const tf = new Map()
-    for (const t of toks) tf.set(t, (tf.get(t) ?? 0) + 1)
-    let score = 0
-    for (const term of q) {
-      const f = tf.get(term) ?? 0
-      if (!f) continue
-      const idf = Math.log(1 + (N - (df.get(term) ?? 0) + 0.5) / ((df.get(term) ?? 0) + 0.5))
-      score += idf * (f * (k1 + 1)) / (f + k1 * (1 - b + b * len / avgLen))
-    }
-    // 时间衰减（30 天半衰）+ 重要性加成 + 被读次数 + 完结降权
-    const days = Math.max(0, (now - d.updated_at) / 86400000)
-    score *= Math.pow(0.5, days / 30)
-    score *= 1 + 0.15 * Math.min(d.importance, 4)
-    // 被读过几次（对数平滑，避免热条目垄断）
-    score *= 1 + 0.12 * Math.log(1 + (d.hits || 0))
-    if (d.status === 'stale') score *= 0.6
-    return { d, score }
-  }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score).slice(0, k)
-
-  // 命中即计一次（这就是「被回忆」的凭证）
+  const scored = search(query, { k, docsPath: OUT })
   if (scored.length) {
     const now2 = Date.now()
     for (const { d } of scored) { d.hits = (d.hits || 0) + 1; d.last_hit = now2 }
     const hitIds = new Set(scored.map((x) => x.d.id))
+    const docs = loadDocs(OUT)
     const out = docs.map((d) => (hitIds.has(d.id) ? d : d))
     try { writeFileSync(OUT, out.map((d) => JSON.stringify(d)).join('\n') + '\n', 'utf8') } catch (e) { console.error('回写失败: ' + e.message) }
   }
   for (const { d, score } of scored) {
-    const head = d.content.replace(/\s+/g, ' ').slice(0, 110)
+    const head = String(d.content).replace(/\s+/g, ' ').slice(0, 110)
     console.log(`[${score.toFixed(2)}] ${d.layer}/${d.project || '-'} ${d.id.slice(0, 12)}`)
     console.log(`   ${head}`)
   }

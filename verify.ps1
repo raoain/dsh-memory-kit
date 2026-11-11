@@ -508,7 +508,26 @@ if (-not (Test-Path $recallF)) {
         Add-Result 'WARN' '读回记录' '文件在但解析不出来'
     } else {
         $broken = @()
+        # 2026-11-11: evidence may be memory entries (mem:<seq>[,mem:<seq>...]) - check the seqs exist
+        # in memories.jsonl instead of treating them as a file path (cites now also land in 读回).
+        $memSeqs = @{}
+        $memF = Join-Path $Root 'memories.jsonl'
+        if (Test-Path $memF) {
+            foreach ($ml in (Get-Content $memF -Encoding UTF8)) {
+                if (-not $ml.Trim()) { continue }
+                try { $mj = $ml | ConvertFrom-Json; if ($mj.seq) { $memSeqs[[string]$mj.seq] = $true } } catch { }
+            }
+        }
         foreach ($r2 in ($rr | Select-Object -Last 3)) {
+            if ($r2.src -match '^mem:') {
+                $badMem = $false
+                foreach ($tok2 in ($r2.src -split ',')) {
+                    $s2 = ($tok2 -replace '^mem:', '').Trim()
+                    if (-not $memSeqs.ContainsKey($s2)) { $badMem = $true }
+                }
+                if ($badMem) { $broken += $r2.src }
+                continue
+            }
             $sp = ($r2.src -split ':')
             if ($sp.Count -lt 2) { $broken += $r2.src; continue }
             $fp = Join-Path $Root $sp[0]
@@ -874,10 +893,21 @@ if ($LASTEXITCODE -eq 0) {
 } else {
     Add-Result 'WARN' '协议纯 ASCII' 'check-source-language.mjs 跑不起来'
 }
+# 51. 派生表连续性：index-all / mem-tier / mem-cites / mem-removal 不许被手改或断号
+# 为什么：这几张表是"生成物"，生成物一旦被人手改，编号与实际数据就对不上，而坏了不会自己喊。
+$derOut = & node (Join-Path $Root 'core\check-derived.mjs') 2>$null
+if ($LASTEXITCODE -eq 0) {
+    Add-Result 'OK' '派生表连续性' 'index-all / mem-tier / mem-cites / mem-removal 一致'
+} elseif ($derOut) {
+    $derLine = ($derOut | Select-String -Pattern '"list"' | Select-Object -First 1)
+    Add-Result 'FAIL' '派生表连续性' (($derOut -join ' ') -replace '\s+',' ').Substring(0, [Math]::Min(120, (($derOut -join ' ') -replace '\s+',' ').Length))
+} else {
+    Add-Result 'WARN' '派生表连续性' 'check-derived.mjs 跑不起来'
+}
 $checksBefore = $rows.Count
 # 口径：expectedChecks = 总项数 − 1（自检这一项自己不计入）
 # 2026-11-09：核心层大小与核心层结构合并成一项（交给免疫 core-page），总项数 53 → 52
-$expectedChecks = 49
+$expectedChecks = 50
 if ($checksBefore -lt $expectedChecks) {
     Add-Result 'FAIL' '检查器自检' ("只跑了 $checksBefore 项 / 预期 $expectedChecks 项 —— 有检查被跳过或结果被覆盖")
 } elseif ($checksBefore -gt $expectedChecks) {

@@ -7,8 +7,13 @@
 # 计划任务：每 5 分钟一次
 
 # 契约 call（2026-11-08）：输入一律在 param 里声明，没有输入也要声明空块
-param()
+param([int]$ForceAfter = 600)
 $ErrorActionPreference = 'Continue'
+function Add-LineNoBom([string]$path, [string]$text) {
+    # 2026-11-11: Add-Content -Encoding UTF8 writes a BOM on PS 5.1, and a BOM breaks json parsers.
+    $enc = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::AppendAllText($path, $text, $enc)
+}
 . (Join-Path $PSScriptRoot '_root.ps1')
 $Log = Join-Path $Root 'track\watchdog.jsonl'
 
@@ -24,11 +29,53 @@ $hbAge = 9999
 $hbOut = & node (Join-Path $Root 'core\timers-alive.mjs') 2>$null
 try { if ($hbOut) { $hbAge = [int]("$hbOut".Trim()) } } catch { }
 if ($hbAge -gt 120) {
-    $note = [ordered]@{ at = (Get-Date -Format "yyyy-MM-dd HH:mm:ss"); heartAge = $hbAge; action = "reported-only" }
-    Add-Content -LiteralPath (Join-Path $Root "track\watchdog.heal.jsonl") -Value (($note | ConvertTo-Json -Compress)) -Encoding UTF8
+    $note = [ordered]@{ at = (Get-Date -Format "yyyy-MM-dd HH:mm:ss"); heartAge = $hbAge; heartAgeBefore = $null; heartAgeAfter = $null; action = "reported-only" }
+    Add-LineNoBom (Join-Path $Root "track\watchdog.heal.jsonl") (((($note | ConvertTo-Json -Compress)) + "`n"))
     $redP = Join-Path $Root 'track\watchdog.red'
     Set-Content -LiteralPath $redP -Value ("heartbeat late {0}s at {1} -- 只报告，未处置" -f $hbAge, (Get-Date -Format "yyyy-MM-dd HH:mm:ss")) -Encoding UTF8
-}$Red = Join-Path $Root 'track\watchdog.red'
+} $Red = Join-Path $Root 'track\watchdog.red'
+
+# ── 2026-11-11 用户定的例外：底层保底，不是判生死
+#   原话：「就跟开机只要有电就跑一样的，是一个底层系统，只要有电，然后心脏停了，也加一个自动维护，
+#          强制起跳或维护啊」；以及「谁有资格在心跳停时动手，跟断点不是一个问题」。
+#   所以这一档不是"判它该不该活"，而是"电还在，就必须有跳"——只在心跳停很久时**重新叫一次调度器**，
+#   不杀任何进程（幂等：单例锁在，已跑的不重复起）；若还不动，就留痕交人。
+#   冷却：60 分钟内只动一次，防止自己把自己拖进风暴。
+if ($hbAge -gt $ForceAfter) {
+    # 2026-11-11 实测：原来「60 分钟内只动一次」让一小时内第二次断**完全没人救**
+    # （22:31 起过一次跳，22:44 又断，767 秒时只写 reported-only）。
+    # 冷却的尺度必须小于断的尺度：改成 MaxR/MaxT——10 分钟内最多起 3 次，超了才停手。
+    $stamp = Join-Path $Root 'track\.watchdog-last-restart'
+    $healF2 = Join-Path $Root 'track\watchdog.heal.jsonl'
+    $windowMin = 10
+    $maxR = 3
+    $recentRestarts = 0
+    if (Test-Path $healF2) {
+        $cut = (Get-Date).AddMinutes(-$windowMin)
+        foreach ($ln3 in (Get-Content $healF2 -Encoding UTF8)) {
+            try { $o3 = $ln3 | ConvertFrom-Json } catch { continue }
+            if ($o3.action -ne 'restart-launcher') { continue }
+            try { if ([datetime]::Parse($o3.at) -ge $cut) { $recentRestarts++ } } catch { }
+        }
+    }
+    $canAct = ($recentRestarts -lt $maxR)
+    if ($canAct) {
+        $h1 = [ordered]@{ at = (Get-Date -Format "yyyy-MM-dd HH:mm:ss"); heartAge = $hbAge; heartAgeBefore = $null; heartAgeAfter = $null; action = "restart-launcher"; note = "power is on but the heart stopped: recall the launcher once (no kill)" }
+        Add-LineNoBom (Join-Path $Root "track\watchdog.heal.jsonl") (((($h1 | ConvertTo-Json -Compress)) + "`n"))
+        Set-Content -LiteralPath $stamp -Value (Get-Date -Format 'yyyy-MM-dd HH:mm:ss') -Encoding UTF8
+        $vbs = Join-Path $Root 'start-timers.vbs'
+        if (Test-Path $vbs) {
+            try { Start-Process -FilePath 'wscript.exe' -ArgumentList ('"' + $vbs + '"') -WindowStyle Hidden } catch { }
+        }
+        Start-Sleep -Seconds 5
+        $after = 9999
+        $hb2 = & node (Join-Path $Root 'core\timers-alive.mjs') 2>$null
+        try { if ($hb2) { $after = [int]("$hb2".Trim()) } } catch { }
+        $h2 = [ordered]@{ at = (Get-Date -Format "yyyy-MM-dd HH:mm:ss"); heartAge = $hbAge; heartAgeBefore = $hbAge; heartAgeAfter = $after; action = "restart-launcher-result" }
+        Add-LineNoBom (Join-Path $Root "track\watchdog.heal.jsonl") (((($h2 | ConvertTo-Json -Compress)) + "`n"))
+    }
+}
+
 
 $out = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'verify.ps1') 2>&1
 $code = $LASTEXITCODE
@@ -42,7 +89,7 @@ $rec = [ordered]@{
     tail  = $tail
 }
 $line = ($rec | ConvertTo-Json -Compress)
-Add-Content -LiteralPath $Log -Value $line -Encoding UTF8
+Add-LineNoBom $Log (($line) + "`n")
 
 if ($code -ne 0) {
     Set-Content -LiteralPath $Red -Value $now -Encoding UTF8

@@ -22,7 +22,7 @@ import { requestSpawn } from './arbiter.mjs'
 import { ROOT } from './root.mjs'
 const BUS = join(ROOT, 'track', 'bus.jsonl')
 const CUR = join(ROOT, 'track', '.reflex-cursor')
-const SELF = '7'
+const SELF = 7
 // 语义编号从 spec 取，不在本地写死（2026-11-08：规则抄多遍必歪）
 const SPEC = JSON.parse(readFileSync(join(ROOT, 'core', 'spec.json'), 'utf8'))
 const KIND_JUDGE = Number(Object.keys(SPEC.kind).find((k) => SPEC.kind[k] === 'judge') ?? 1)

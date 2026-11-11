@@ -21,7 +21,7 @@ import { ROOT } from './root.mjs'
 import { emit } from './bus.mjs'
 import { requestSpawn } from './arbiter.mjs'
 
-const SELF = '20'
+const SELF = 20
 const BUS = join(ROOT, 'track', 'bus.jsonl')
 const PLAN = join(ROOT, 'track', 'brain.jsonl')
 const dry = process.argv.includes('--dry')

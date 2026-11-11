@@ -1,0 +1,46 @@
+// core/mem-retire.mjs -- 记忆的"卸载"出口：一条记忆被标死后，必须留下一行可查的判决。
+//
+// Why (2026-11-11 用户): 「为什么标，工程侧没有留痕。现在能删（标 archived），不能解释"为什么删"。
+//   你可以建一种表，然后给他上一个编号，然后就知道是怎么删的，或者说什么数据删的。」
+// 规矩（`notebook\5-判据.md` 与记忆定位同源）：飞轮要小，只增不减会让纠偏变慢；
+//   但**卸载的唯一出口是墓碑**——不是悄悄从文件里消失。
+//
+// usage:
+//   node core/mem-retire.mjs <seq> --why "原因" [--by user|rule:P35|auto:immunity] [--action archived|tier-down|merge] [--dry]
+// 写进 track/mem-removal.jsonl（只追加，不改写）：
+//   {no:"R-0001", at, seq, action, why, by, evid}
+// 编号只增：R-0001, R-0002 …（删过的号不回收）
+//
+// import 不执行主逻辑（同族教训：能被 import 的模块必须有 main 保护）。
+
+import { readFileSync, appendFileSync, existsSync } from 'node:fs'
+import { join } from 'node:path'
+import { ROOT } from './root.mjs'
+
+const TABLE = join(ROOT, 'track', 'mem-removal.jsonl')
+
+function main (argv) {
+  const seq = argv[0]
+  const dry = argv.includes('--dry')
+  const get = (k, d) => { const i = argv.indexOf(k); return i >= 0 && argv[i + 1] ? argv[i + 1] : d }
+  const why = get('--why', '')
+  const by = get('--by', 'user')
+  const action = get('--action', 'archived')
+  if (!seq || !/^\d+$/.test(String(seq))) { console.error('usage: node core/mem-retire.mjs <seq> --why "…" [--by user|rule:P35|auto:x] [--dry]'); return 2 }
+  if (!why) { console.error('拒绝：没有 --why 就不许卸载（墓碑必须写清"那条死了，现在按这个来"）'); return 2 }
+  let rows = []
+  if (existsSync(TABLE)) {
+    rows = readFileSync(TABLE, 'utf8').trim().split(/\r?\n/).filter(Boolean).map((l) => { try { return JSON.parse(l) } catch { return null } }).filter(Boolean)
+  }
+  const next = rows.length + 1
+  const no = 'R-' + String(next).padStart(4, '0')
+  const rec = { no, at: new Date().toISOString(), seq: String(seq), action, why, by, evid: `mem:${seq}` }
+  if (dry) { console.log(JSON.stringify({ dry: true, would: rec }, null, 2)); return 0 }
+  appendFileSync(TABLE, JSON.stringify(rec) + '\n', 'utf8')
+  console.log(JSON.stringify({ ok: true, wrote: rec }))
+  return 0
+}
+
+if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('mem-retire.mjs')) {
+  process.exit(main(process.argv.slice(2)))
+}

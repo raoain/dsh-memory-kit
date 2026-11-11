@@ -13,7 +13,7 @@
 //   node core/immunity.mjs          check + write the table
 //   node core/immunity.mjs --quiet  only print the summary line
 
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { ROOT } from './root.mjs'
@@ -27,7 +27,7 @@ function zh(key, ...args) {
   return String(t).replace(/\{(\d+)\}/g, (_m, idx) => (args[Number(idx)] === undefined ? '' : String(args[Number(idx)])))
 }
 
-const SELF = '17'
+const SELF = 17
 // 取原文、不做 {n} 替换：正则里本身就带 {4} 这种量词，走 zh() 会被当成占位符吃掉
 function zhRaw(key) { return String(ZH[key] || '') }
 const REG = JSON.parse(readFileSync(join(ROOT, 'core', 'immunity.json'), 'utf8'))
@@ -290,17 +290,16 @@ const CHECKS = {
     return { ok: level === 0, level, detail: zh('imm.wake.age', ageH.toFixed(1), maxH) }
   },
   'snapshot-fresh': () => {
+    // 2026-11-11 用户：「有原件就用原件」——"正常时的样子"快照只有一份原件：`track/baseline.json`（`baseline.ps1 -Snap` 写，自我集同源）。
+    // `track/own/*.json` 是同一件事的第二套（11-09 之后没人写），不再作为判据来源。
     const cfg = (SPEC.reminders && SPEC.reminders.snapshot) || {}
-    const dir = join(ROOT, cfg.dir || 'track/own')
-    const ext = cfg.ext || '.json'
-    const names = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(ext)) : []
-    if (!names.length) return { ok: false, detail: zh('imm.snap.none') }
-    let newest = 0
-    for (const n of names) {
-      const st = statSync(join(dir, n))
-      if (st.mtimeMs > newest) newest = st.mtimeMs
-    }
-    const ageH = (Date.now() - newest) / 3600000
+    const file = join(ROOT, cfg.source || 'track/baseline.json')
+    const key = cfg.key || 'snapAt'
+    if (!existsSync(file)) return { ok: false, detail: zh('imm.snap.none') }
+    let at = 0
+    try { const j = JSON.parse(readFileSync(file, 'utf8')); at = new Date(j[key] || 0).getTime() } catch { at = 0 }
+    if (!at) return { ok: false, detail: zh('imm.snap.none') }
+    const ageH = (Date.now() - at) / 3600000
     const maxH = Number(cfg.max_age_h || 30)
     return { ok: ageH <= maxH, level: ageH > maxH ? 1 : 0, detail: zh('imm.snap.age', ageH.toFixed(1), maxH) }
   },
@@ -485,6 +484,76 @@ const CHECKS = {
     }
     return { ok: bad.length === 0, detail: bad.length ? zh('imm.orgkey', bad.join(',')) : zh('imm.orgkey-ok') }
   },
+  'core-no-network': () => {
+    // 2026-11-11 user: "模型当外挂——好像也不是不能，但没验过". This makes it checkable:
+    // nothing under core/ may call a model API or the network; the ring must run without a model.
+    const bad = []
+    const pat = /\bfetch\s*\(|from ['"](?:node-fetch|axios|openai|@anthropic-ai|@google\/generative-ai)['"]|https?:\/\/api\./
+    let names = []
+    try { names = readdirSync(join(ROOT, 'core')) } catch { return { ok: false, detail: 'core/ unreadable' } }
+    for (const n of names) {
+      if (!n.endsWith('.mjs')) continue
+      const src = readText('core/' + n) || ''
+      if (pat.test(src)) bad.push(n)
+    }
+    return bad.length ? { ok: false, detail: 'model/network call in core: ' + bad.join(',') } : { ok: true, detail: 'core has no model or network calls' }
+  },
+  'memory-tables': () => {
+    // 2026-11-11 user: merge into ONE table. spec.memory.signal + spec.memory.tier + spec.data.readers
+    // are the only place those numbers and policies live; if one disappears, scoring silently defaults.
+    const s = JSON.parse(readText('core/spec.json'))
+    const miss = []
+    if (!s.memory || !s.memory.signal) miss.push('memory.signal')
+    if (!s.memory || !s.memory.tier) miss.push('memory.tier')
+    if (!s.data || !s.data.readers) miss.push('data.readers')
+    return miss.length ? { ok: false, detail: 'spec missing: ' + miss.join(',') } : { ok: true, detail: 'memory tables present in spec' }
+  },
+  'formats-consistent': () => {
+    // 2026-11-11 用户：「别搞那么些乱七八糟的玩意，像通用骨架一样，搞个信号表，能统一的话就统一」。
+    // 规则在 core/spec.json 的 formats 段；这里只调执行者，不重写规则。
+    // ts/*_ts 必须是整数毫秒，at/*_at 必须是 ISO 字符串——混用就点名。
+    const r = spawnSync(process.execPath, [join(ROOT, 'core', 'check-formats.mjs')], { encoding: 'utf8' })
+    if (r.status === 0) return { ok: true, detail: 'time formats consistent' }
+    const out = String((r.stdout || '') + (r.stderr || '')).trim().slice(0, 400)
+    return { ok: false, detail: `format violations: ${out}` }
+  },
+  'wiring-covered': () => {
+    // 2026-11-11 用户：「建吧跟通用骨架一样的标准表，不然鬼知道你定的是什么东西」——
+    // core/wiring.json 是「数核每个分量 → 下游哪个输出变」的标准表；本检查保证它不撒谎：
+    // ① 表里每一行的 marker 必须仍能在 core/mind.mjs 里找到（线断了当场点名）
+    // ② nucleus 的 9 个分量必须都有行（新加分量不登记也点名）
+    const expected = ['items', 'backed', 'movable', 'demoted', 'chronic', 'habits', 'integration', 'differentiation', 'trend']
+    const w = JSON.parse(readText('core/wiring.json'))
+    const mind = readText('core/mind.mjs') || ''
+    const bad = []
+    const ids = new Set()
+    for (const f of w.fields || []) {
+      ids.add(f.id)
+      if (!f.marker) { bad.push(`${f.id}:no-marker`); continue }
+      if (!mind.includes(String(f.marker))) bad.push(`${f.id}:marker-missing`)
+    }
+    for (const e of expected) if (!ids.has(e)) bad.push(`${e}:not-in-table`)
+    const ok = bad.length === 0
+    return { ok, detail: ok ? zh('imm.wiring-ok', ids.size) : zh('imm.wiring', bad.join(',')) }
+  },
+  'channel-tagged': () => {
+    // 2026-11-11 用户：「这种表建了你按表来呀」——spec.channels.map 建好了就必须真带上：
+    // 最近 5 分钟的每条总线记录都必须有 channel，且值只能是 fast/steady/slow。
+    const lines = (readText('track/bus.jsonl') || '').split('\n').filter((l) => l.trim())
+    const cutoff = Date.now() - 5 * 60 * 1000
+    const allowed = new Set(['fast', 'steady', 'slow'])
+    const bad = []
+    let seen = 0
+    for (const line of lines.slice(-300)) {
+      let r; try { r = JSON.parse(line) } catch { continue }
+      if (Number(r.ts || 0) < cutoff) continue
+      seen++
+      if (!allowed.has(String(r.channel || ''))) bad.push(`${r.src}:${r.channel || 'none'}`)
+    }
+    const ok = bad.length === 0
+    return { ok, detail: ok ? zh('imm.channel-ok', seen) : zh('imm.channel', bad.slice(0, 5).join(',')) }
+  },
+
   'probe-fresh': () => {
     const p = join(ROOT, 'track', '.probe-last.json')
     if (!existsSync(p)) return { ok: false, detail: zh('lit.6') }
@@ -630,6 +699,13 @@ if (process.argv.includes('--json')) {
   process.exit(state === 2 ? 2 : 0)
 }
 console.log(zh('imm.26', total, total - missing, total - failing - escalated, escalated, missing, failing))
-if (!quiet) for (const r of rows.filter((x) => !x.enforced || (!x.liveOk && x.tier !== 'escalate'))) console.log(`  ! ${r.id}: ${r.detail}`)
+// 2026-11-11 用户：「痛觉是免疫进阶一些致死的，就直接上痛觉优先级」——
+// 痛觉 = 免疫里的致死档（tier:pain）：坏到会真断/真死的，**先喊、先打断**，排在其它一切前面。
+const pain = rows.filter((r) => r.tier === 'pain' && (!r.enforced || !r.liveOk))
+if (pain.length) {
+  console.log(`PAIN: ${pain.map((r) => r.id).join(',')} -- lethal-level failure, drop everything else`)
+  if (!quiet) for (const r of pain) console.log(`  !! ${r.id}: ${r.detail}`)
+}
+if (!quiet) for (const r of rows.filter((x) => x.tier !== 'pain' && (!x.enforced || (!x.liveOk && x.tier !== 'escalate')))) console.log(`  ! ${r.id}: ${r.detail}`)
 emit(SELF, 4, state, total - failing - escalated, `immunity:${total - missing}/${total - failing - escalated}`, { rush: 0 })
 process.exit(state === 2 ? 2 : 0)
