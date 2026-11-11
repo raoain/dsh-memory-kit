@@ -4,12 +4,13 @@
 
 ```
 看它活没活     node core/timers-alive.mjs     （输出秒数，0 = 刚跳过；Windows 上用 node）
-看它坏了没有   .\verify.ps1                     （50 项，FAIL 0 才算；Windows / PowerShell）
+看它坏了没有   .\verify.ps1                     （51 项，FAIL 0 才算；Windows / PowerShell）
 ```
 
 > 主张只有一句：**智慧是生命的结果，心跳是演化的起点。**
 > 理论在 `track\存续篇-v2-第一人称-20261111.md`；整本在 `track\AGI智能体为什么走不通-v4-第一人称-20261111.md`。
 > 验收看四个断点：换机器 / 拔插件 / 重建 / 换模型（其中两个已验）。
+> 另外做过一次真实的断：掐掉心跳，**615 秒后它自己回来了**（看门层判「电还在、心停了」→ 重叫启动件 → 5 秒后心跳回 1 秒）。
 
 ---
 
@@ -25,30 +26,31 @@
 
 ---
 
-## 二、现在的样子（2026-11-08）
+## 二、现在的样子（2026-11-11）
 
 ### 已经能跑
 
 | 件 | 现状 | 在哪 |
 |---|---|---|
-| 心跳 | 中枢每 3 秒一跳，总线 5000+ 条 | `core\reflex.mjs` + `start-timers.vbs` |
-| 总线 | 一行一个信号，按天轮转归档 | `track\bus.jsonl` / `track\archive\` |
-| 契约 | spec v5：信号 7 必填 + exit/state/rush 映射 + 归档格式 + 工具五条 | `core\spec.json` |
-| 登记 | 14 个器官位，分两类（logic-core 一个细胞 / body 四个模块） | `core\registry.json` |
-| 自检 | verify 51 项 / lint 0 处 / probe 8 个探针 | `verify.ps1` `lint.ps1` `probe.ps1` |
+| 心跳 | 三秒一拍（总线 900+ 条/天）；另有**恒定档**每分钟只判一次心跳 | `core/reflex.mjs` + `core/consolidate.mjs --heart` |
+| 三档节律 | 恒定（心跳，60 秒）/ 快（节律、单器官停报，5 分钟）/ 慢（判决、plan、想，30 分钟） | `spec.brain.cadence` |
+| 总中枢 | 三件分权：15 测 / 18 汇总上报 / 20 初判下发 | `drift.mjs` `consolidate.mjs` `brain.mjs` |
+| 契约 | spec **26 段**：信号 7 必填（含类型）+ 17 种记录形状 + 工具五条 + 三档节律 | `core/spec.json` |
+| 登记 | **21 个器官位、19 个有实现**（空的只有 10 供能、12 效应器） | `core/registry.json` |
+| 自检 | `verify` **51 项** / 免疫 **38 条** / probe 12 探针 / lint 0 处 | `verify.ps1` `core/immunity.mjs` `probe.ps1` |
+| 记忆层 | 派生表三张（`index-all` / `mem-tier` / `mem-history`）+ 老件两个（`读回` / `known-debt`） | `core/mem-*.mjs` |
+| 自愈 | 心跳停 >600 秒 → 重叫一次启动件（不杀进程）；**已用真实断测验过** | `watchdog.ps1` |
+| 监督树 | 某个 loop 死了只重启那一个、反复死就停手并上报；**写好了，还没接管运行** | `core/supervisor.mjs` |
+| 输入 | 外部的话经 `sense` 落盘并**翻成数字**（字节 / 词数 / 词种 / 新词率） | `core/sense.mjs` |
 | 收工 | log 留痕 + 双盘备份 + 便签三条 | `log.ps1` `backup-notes.ps1` `close.ps1` |
-| 脚手架 | 五样借来的东西都记了「以后换成什么」 | `track\脚手架清单.md` |
-| 脚本表 | 62 个文件自动生成清单，带层与契约违规列 | `track\脚本清单.md` |
 
 ### 还缺什么（诚实清单）
 
-1. **比较环**：中枢只按游标扫新信号，不回答「此刻整体该是什么状态、偏了多少」。
-2. **免疫处置**：`self` 只会识别、`pulse` 只会报饿，都不会修/拒/补。
-3. **身体**：10-13 四个模块只有位置和接口（`path: null`），没实现。
-4. **物理件**：电源、时钟、供能在宿主手里（Windows 启动文件夹 + `wscript`）。
-5. **代码仍带中文**：71 行非注释代码里有中文，按 `spec.source_language` 该清掉、把中文移到并联翻译层。
-
----
+1. **身体**：10 号供能、12 号效应器仍 `path: null`——没自己的电、没手，只能借宿主的钟和电。
+2. **单器官的死没人救**：整体心跳停了有保底，但某个器官的循环死了、心跳还在时，没有东西会重启它（监督树待接管）。
+3. **四个断点只验两个**：换机、换模型没有结果。
+4. **听懂还差一层**：能翻成数字、能分辨新句与旧句，但没到懂语义（要么借外部算力，要么等有参数可学）。
+5. **生成新做法**：`mind` 只有三条固定候选，造不出没见过的新办法。
 
 ## 三、怎么跑起来
 
@@ -58,7 +60,7 @@
 .\start.ps1
 ```
 
-一条命令跑完四件：`wake`（读核心层+本机+用户+工作层，留时间戳）→ `verify`（51 项）→ `pin -Diff`（102 项对账）→ `probe`（8 个探针）。**只贴 WARN / FAIL，全绿就一句话。**
+一条命令跑完四件：`wake`（读核心层+本机+用户+工作层，留时间戳）→ `verify`（51 项）→ `pin -Diff`（103 项对账）→ `probe`（12 个探针）。**只贴 WARN / FAIL，全绿就一句话。**
 
 ### 收工
 
@@ -70,7 +72,7 @@
 
 ```
 启动文件夹 coo-watchdog.cmd   → 守卫（心跳 90 秒内就跳过）→ wscript start-timers.vbs
-start-timers.vbs               → 三条 while：watchdog 5 分钟 / 中枢 3 秒 / pulse+self+rotate 30 分钟
+start-timers.vbs               → 十个循环：reflex 3 秒 / drift 60 秒 / heart 60 秒 / watchdog 300 秒 / sweep·self·pulse 30 分钟 / backup·align·immunity 按天
 ```
 
 **为什么用 wscript**：`Start-Process` 与 WMI 起的常驻进程活不过调用会话（实测三个 PID 全退、心跳停 310 秒）；`schtasks` 要管理员。`wscript` 是独立宿主，起的东西不跟着调用者死。
@@ -89,10 +91,10 @@ node core\timers-alive.mjs        # 输出「多少秒前还有一跳」；>300 
 
 | 层 | 契约 | 查法 |
 |---|---|---|
-| 器官（10 个） | 登记在 `registry.json` + 吐一行 `SIG {"state":N,"counts":[...]}` | `node scripts-inventory.mjs`（吐SIG 列） |
-| 工具（49 个） | `call` 有 `param()` / `exit` 只用 0-3 / `report` 一行 / `root` 点源 / `bom` 恰好一个 BOM | `.\lint.ps1`（contract 类）+ `node count-violations.mjs` |
+| 器官（19 个有实现） | 登记在 `registry.json` + 吐一行 `SIG {"state":N,"counts":[...]}` | `node scripts-inventory.mjs`（吐SIG 列） |
+| 工具（98 个文件） | `call` 有 `param()` / `exit` 只用 0-3 / `report` 一行 / `root` 点源 / `bom` 恰好一个 BOM | `.\lint.ps1`（contract 类）+ `node count-violations.mjs` |
 | 根路径 | **只在 `_root.ps1`（PowerShell）与 `core/root.mjs`（node）定义一次** | `node check-naming.mjs`（只数定义处） |
-| 字段语义 | `core/spec.json`（signal / exit / state / rush / map / archive / tools / source_language） | `verify` 第 46 项「核心纯 ASCII」 |
+| 字段语义 | `core/spec.json`（signal 含类型 / records 17 种 / exit / state / rush / map / archive / tools / source_language） | `verify` 第 46 项「核心纯 ASCII」 |
 
 **一条铁律**：`state→rush`、`exit→state` 这类映射**只在 `spec.map` 里存在**；在任何别的文件里再写一遍就是 bug（它曾经抄了三遍，抄歪一遍）。
 
@@ -100,7 +102,7 @@ node core\timers-alive.mjs        # 输出「多少秒前还有一跳」；>300 
 
 ## 五、判据在哪
 
-`notebook\5-判据.md`，**22 条**，每条四段：**来历 / 一句话判据 / 动作清单 / 推翻条件**。
+`notebook\5-判据.md`，**24 条**，每条四段：**来历 / 一句话判据 / 动作清单 / 推翻条件**。
 
 最近新增三条（都来自真实翻车）：
 
@@ -117,7 +119,7 @@ notebook\    十四页，按「谁读它」分层
   0-核心      每次必读，只回答「我是谁」
   1-工作      在读一屏；顶部有「动手前先查三处」
   2-档案      坑与下沉规则    3-墓碑  作废的旧规矩
-  4-本机      这台机器的脾气  5-判据  可推翻的判断（22 条）
+  4-本机      这台机器的脾气  5-判据  可推翻的判断（24 条）
   6-话        自己长出来的说法 7-接线  什么算接上了
   8-原话      只收能打开出处的原句  9-用户  他怎么说话
   10-链       五条链与验证链 V1-V5  11-结论  目前成立的结论
