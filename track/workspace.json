@@ -1,6 +1,6 @@
 {
-  "at": "2026-11-12T04:10:30.081Z",
-  "round": 161,
+  "at": "2026-11-12T04:40:30.201Z",
+  "round": 162,
   "cap": 7,
   "items": [
     {
@@ -8,18 +8,18 @@
       "kind": "late",
       "bucket": "observed",
       "remedy": null,
-      "held_rounds": 88,
+      "held_rounds": 89,
       "first": "2026-11-10T05:20:41.909Z",
-      "last": "2026-11-12T04:10:30.081Z"
+      "last": "2026-11-12T04:40:30.201Z"
     },
     {
       "id": "backup",
       "kind": "late",
       "bucket": "observed",
       "remedy": null,
-      "held_rounds": 74,
+      "held_rounds": 75,
       "first": "2026-11-10T23:51:15.535Z",
-      "last": "2026-11-12T04:10:30.081Z"
+      "last": "2026-11-12T04:40:30.201Z"
     }
   ],
   "droppedThisRound": []
