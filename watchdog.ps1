@@ -29,7 +29,7 @@ $hbAge = 9999
 $hbOut = & node (Join-Path $Root 'core\timers-alive.mjs') 2>$null
 try { if ($hbOut) { $hbAge = [int]("$hbOut".Trim()) } } catch { }
 if ($hbAge -gt 120) {
-    $note = [ordered]@{ at = (Get-Date -Format "yyyy-MM-dd HH:mm:ss"); heartAge = $hbAge; heartAgeBefore = $null; heartAgeAfter = $null; action = "reported-only" }
+    $note = [ordered]@{ at = (Get-Date -Format "yyyy-MM-dd HH:mm:ss"); heartAge = $hbAge; heartAgeBefore = $null; heartAgeAfter = $null; note = $null; action = "reported-only" }
     Add-LineNoBom (Join-Path $Root "track\watchdog.heal.jsonl") (((($note | ConvertTo-Json -Compress)) + "`n"))
     $redP = Join-Path $Root 'track\watchdog.red'
     Set-Content -LiteralPath $redP -Value ("heartbeat late {0}s at {1} -- 只报告，未处置" -f $hbAge, (Get-Date -Format "yyyy-MM-dd HH:mm:ss")) -Encoding UTF8

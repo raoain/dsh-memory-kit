@@ -221,5 +221,6 @@
  "zone.Z38": "dsh-notebook/rules",
  "zone.Z39": "dsh-memory-kit/rules",
  "zone.Z40": "dsh/rules",
- "tombstone.memory": "\n### 「记忆 mem:{seq} 被标死」（{stamp} 作废）\n- 为什么：{why}\n- 现在按：不再检索到它（动作 {action}）；旧版本仍在 memories.jsonl 与 mem-history.jsonl 里，作原料\n"
+ "tombstone.memory": "\n### 「记忆 mem:{seq} 被标死」（{stamp} 作废）\n- 为什么：{why}\n- 现在按：不再检索到它（动作 {action}）；旧版本仍在 memories.jsonl 与 mem-history.jsonl 里，作原料\n",
+ "cell.11.note": "十一号感官保持不启用：管道通了（sense→in-raw→总线 src11），也带可比较的数（字节/词数/新词率），但词表与「词转数字」属于机理、不归我们（我们只留接口）——等外面有谁能给一串 id，我们只负责照单收下，那时才启用。"
 }

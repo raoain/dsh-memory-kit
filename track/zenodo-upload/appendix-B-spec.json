@@ -1,0 +1,912 @@
+{
+ "version": 5,
+ "time": "ts = epoch milliseconds (number); at = UTC ISO8601 with trailing Z (for humans)",
+ "state": {
+  "0": "pass",
+  "1": "warn",
+  "2": "fail",
+  "3": "unknown"
+ },
+ "kind": {
+  "1": "judge",
+  "2": "probe",
+  "3": "act",
+  "4": "record"
+ },
+ "exit": {
+  "0": "pass",
+  "1": "ok-with-warn",
+  "2": "fail",
+  "3": "cannot-judge"
+ },
+ "rush": {
+  "0": "cosmetic",
+  "1": "decays",
+  "2": "irreversible",
+  "3": "critical: repeated past the urgent threshold, stop retrying and wait for a handler",
+  "note": "priority = how bad it gets if nobody handles it. 2 means it is already too late to undo; 3 means it keeps coming back and retrying only makes noise"
+ },
+ "signal": {
+  "required": [
+   "ts",
+   "at",
+   "src",
+   "kind",
+   "state",
+   "value",
+   "evid"
+  ],
+  "optional": [
+   "rush",
+   "counts",
+   "topic",
+   "cell",
+   "channel"
+  ],
+  "note": "numbers wherever a value can be compared or ordered; strings only for humans. rush defaults to 0.",
+  "topic_note": "topic names WHAT KIND of event this is (e.g. cadence.broken); it is not an address. Who reacts is decided by the receiver table (core/rules.json), the same way a hormone is only read by cells that carry the receptor. cell optionally names which organ the event is about.",
+  "types": {
+   "note": "2026-11-11: the spec listed required names but never their types, so callers could pass strings and nothing caught it (reflex passed '7', my strict guard then killed the heartbeat). Types are now part of the standard.",
+   "ts": "number (epoch ms)",
+   "at": "string (ISO-8601)",
+   "src": "number (organ id; the bus stores it as a decimal string on disk)",
+   "kind": "number",
+   "state": "number (0 pass / 1 warn / 2 fail / 3 unknown)",
+   "value": "number",
+   "evid": "string (human note; machine decisions never live here)",
+   "counts": "array of numbers [bytes, words, uniq, novelty_pct] when present"
+  }
+ },
+ "map": {
+  "exit_to_state": {
+   "0": 0,
+   "1": 1,
+   "2": 2,
+   "3": 3
+  },
+  "state_to_rush": {
+   "0": 0,
+   "1": 1,
+   "2": 2,
+   "3": 1
+  },
+  "note": "the only place these decisions live. adapter reads them here; hardcoding them anywhere else is a bug (2026-11-08: exit 1 was mapped to fail)."
+ },
+ "id": "integer, only grows, never reused",
+ "archive": {
+  "dir": "track/archive",
+  "raw": "bus-YYYYMMDD.jsonl",
+  "summary": "bus-YYYYMMDD.summary.json",
+  "summary_required": [
+   "day",
+   "count",
+   "bySrc",
+   "byState",
+   "rushMax"
+  ],
+  "summary_types": {
+   "day": "string YYYY-MM-DD",
+   "count": "integer",
+   "bySrc": "object src->integer",
+   "byState": "object state->integer",
+   "rushMax": "integer 0..2"
+  },
+  "note": "raw lines are kept verbatim, one signal per line, unchanged. summary is aggregate counts only -- no text, so it can be compared and diffed."
+ },
+ "adapter_protocol": null,
+ "adapter_protocol_note": "null = private adapter per organ. When a common protocol exists, name it here and keep the private adapter as fallback.",
+ "tools": {
+  "note": "The tool layer has a contract too, just a different one. Organs talk over the bus (SIG); tools are called by a human and must say how to call them and how to tell success from failure.",
+  "contract": {
+   "call": "a param() block declares every input; no positional magic, no reading globals it did not declare",
+   "exit": "exit codes use the same table as above: 0 ok, 1 ok-with-warn, 2 fail, 3 cannot-judge",
+   "report": "one line of plain text stating what it did and where the evidence is; no SIG line required",
+   "root": "dot-source _root.ps1 (PowerShell) or import core/root.mjs (node); never hardcode the path",
+   "bom": "a .ps1 starts with EXACTLY one UTF-8 BOM: zero makes PS 5.1 read it as GBK, more than one leaves param() unbound while the script keeps running and looks healthy"
+  },
+  "why": "Without a contract the tool layer drifts: each script invents its own exit codes and argument style, so nothing can be checked in the same way as organs. The contract differs from SIG, but it must exist (2026-11-08).",
+  "lint": {
+   "note": "script lint rules; implemented by lint.ps1, verdict surfaced by immunity (ps1-lint) so there is one bark point",
+   "rules": {
+    "var-collision": "the same logical variable must not be spelled in several different cases in one script",
+    "no-ternary": "PowerShell 5.1 has no ternary operator; use if/else",
+    "no-dotnet-relative": "[IO.File] and friends resolve against the process CWD, not Set-Location; use absolute paths"
+   },
+   "implemented_by": "lint.ps1"
+  }
+ },
+ "expect": {
+  "note": "The ONLY place expected values live. Comparison code reads them here; a threshold hardcoded anywhere else is a bug (same rule as map).",
+  "heartbeat": {
+   "interval_ms": 3000,
+   "tolerance": 3
+  },
+  "organ_cadence_source": "registry.cells[].every (minutes; 0 = on-demand, no freshness check)",
+  "rules": [
+   "heartbeat: a src7 signal should land within interval_ms * tolerance; drift is seconds late",
+   "organ: an organ with every>0 should have landed within 2*every minutes; drift is minutes late",
+   "cadence is not death: exceeding 2*every means hungry (state 1), never dead (state 3)"
+  ],
+  "why": "Comparison without a stated expectation is just a hardcoded number in disguise. Before 2026-11-08 these values were scattered across baseline.json, self-baseline.json and registry, and reflex had no way to know what 'normal' was.",
+  "drift": {
+   "note": "how much windowed violation counts as real. Prior art judges a window ratio (SLO burn rate) not an instant; a single restart must not raise an alarm.",
+   "state1_bp": 1000,
+   "state2_bp": 5000,
+   "why": "three percent violation over a window is noise from one restart; ten percent is a pattern; fifty percent is broken. Value on the bus is basis points (ratio * 10000).",
+   "repeat_rounds": 5,
+   "repeat_note": "the same expectation breached for this many consecutive rounds is no longer an incident but a changed normal; the brainstem reports it as cadence.repeat, it does not dispatch anyone",
+   "dedup_window_sec": 600,
+   "dedup_note": "the same condition is held (not re-reported) until this many seconds pass, the state changes, or it is the first sighting",
+   "tier_urgent_after": 20,
+   "tier_note": "normal below tier_urgent_after repeats (17 was normal); urgent from tier_urgent_after (20+); lethal is not a count -- it means a whole region is down or the failure spans regions",
+   "tier_critical_after": 40,
+   "note_after": "keep tier_urgent_after (20) for urgent, tier_critical_after (40) for critical-3; lethal (no signal at all) is judged separately and never becomes a rush level"
+  },
+  "time_base": {
+   "note": "heartbeat is the only clock: every window/threshold is expressed in beats, so changing the heartbeat rate changes the whole system at once",
+   "unit": "heartbeat",
+   "interval_ms": 3000,
+   "beats": {
+    "sample": 20,
+    "short_window": 600,
+    "shutdown": 600,
+    "discharge": 900,
+    "min_samples": 8
+   }
+  }
+ },
+ "source_language": {
+  "layers": "This is LAYERING, not exemption. There are two layers and each has its own language rule; neither is an exception to the other.",
+  "layer_core": {
+   "name": "core code -- the vessel",
+   "rule": "pure ASCII, no exception",
+   "what": [
+    "identifiers",
+    "protocol marks",
+    "parsed string literals",
+    "file names used as constants",
+    "field values written to the bus or to json data"
+   ],
+   "why": "user's wording (2026-11-08): core code is the blood vessel; a foreign body in it is a defect, not a style issue"
+  },
+  "layer_translation": {
+   "name": "translation layer -- what the person wants to read, so it is translated",
+   "rule": "any language, and it must live OUTSIDE the vessel",
+   "where": [
+    "locales/{zh,en}.json",
+    "comments",
+    "console output",
+    "error text meant for a person"
+   ],
+   "why": "user's wording (2026-11-08): the translation behind it exists because the person wants to see it, that is why it is translated"
+  },
+  "test": "ask one question per string: does a machine parse it? yes -> vessel (ASCII). no -> translation layer.",
+  "scope": [
+   "core/*.mjs",
+   "*.mjs",
+   "*.ps1",
+   "core/*.json",
+   "track/bus.jsonl"
+  ],
+  "why": "User definition (2026-11-08): 'if you write code, you write it by this standard; attaching a translation layer alongside is fine.' Chinese inside the vessel means the translation was inlined, not attached.",
+  "boundary_note": "The first version said 'no non-ASCII anywhere' and called the human-facing parts 'exempt'. Both were wrong: it would have demanded translating several thousand comment lines, and 'exempt' frames the translation layer as a loophole instead of a layer.",
+  "current_gap_2026_11_08": "No known violations in the vessel. core0.mjs (which parsed Chinese protocol marks) was archived to trash/2026-11/. human.mjs now reads its wording from locales.zh."
+ },
+ "channels": {
+  "note": "three tiers by what the stream is for, not by frequency alone",
+  "map_note": "2026-11-11: the tier of each organ lives HERE, not in code. adapter reads this map and writes the tier into the signal as `channel`; an organ with no entry gets `default`. Adding an organ means adding a row here.",
+  "default": "slow",
+  "map": {
+   "5": "slow",
+   "7": "steady",
+   "10": "steady",
+   "11": "fast",
+   "16": "slow",
+   "17": "slow"
+  },
+  "fast": {
+   "id": "fast",
+   "role": "vision-like",
+   "example": "perceptual organs (vision/hearing) once a body exists",
+   "repeats": "almost nothing repeats; every sample is new and useful",
+   "route": "straight to the center, then to the brain; the brainstem cannot judge content",
+   "status": "reserved",
+   "keep": "raw retained while useful (retention undecided)"
+  },
+  "steady": {
+   "id": "steady",
+   "role": "constant supply",
+   "example": "heartbeat(reflex) and power/energy",
+   "repeats": "constant: the heartbeat repeats almost identically, the energy level changes slowly",
+   "route": "own tier; the heartbeat does not interoperate with anything else",
+   "judge": "liveness only for the heart (count, max gap, where it broke); energy is judged against its own setpoint",
+   "keep": "shape only for the heartbeat; raw may be discharged"
+  },
+  "slow": {
+   "id": "slow",
+   "role": "daily or event driven",
+   "example": "backup/align/immunity",
+   "repeats": "rare",
+   "route": "brainstem measures, center judges",
+   "judge": "cadence against registry.every; absence today is not a fault",
+   "keep": "daily roster marks presence; raw not needed"
+  },
+  "routing_rule": {
+   "why": "biology has no choice: no bandwidth, so it must compress into a hub and send a summary. Silicon has bandwidth, and the brainstem cannot process change anyway.",
+   "rule": "constant stream is absorbed by the brainstem (compressed, mostly discharged); changes and problems go straight to the brain, which is the only layer that can handle them; the brainstem is not a detour they must pass",
+   "bandwidth": "no cap: real-time data may be carried in full; do not compress just because biology had to",
+   "not_a_rule": "passing through a center is not a virtue by itself",
+   "purpose": "the brainstem exists for ONE reason: the internal organs are too constant, their stream does not need to be reported up. It is not a hub everything must pass through.",
+   "default": "point to point when both ends can talk; copying the biological detour is not architecture, it is habit."
+  }
+ },
+ "brain": {
+  "note": "the decision table lives in the spec, not in brain.mjs: a rule change must not require a code change (same reason OPA keeps policy out of the engine)",
+  "mechanical": {
+   "backup": "rerun-backup",
+   "align": "realign-pins",
+   "immunity": "rerun-immunity",
+   "consolidate": "rerun-consolidate"
+  },
+  "needs_understanding": [
+   "self",
+   "pulse",
+   "drift",
+   "damage"
+  ],
+  "lanes": {
+   "note": "thresholds for the four candidate lanes; 2026-11-11 moved out of core/mind.mjs (user: a general standard lives in ONE file, and mind was carrying a second copy)",
+   "threshold_late": 0.5,
+   "threshold_other": 0.15,
+   "accept_known": 0.6,
+   "skip_not_urgent": 0.8,
+   "wait_late": 0.05,
+   "wait_other": 0.4
+  },
+  "focus": {
+   "note": "focus rule thresholds: integration high -> narrow focus, differentiation high -> widen. Moved out of core/mind.mjs 2026-11-11 (a general standard lives in one file).",
+   "integ_threshold": 0.5,
+   "diff_threshold": 0.5,
+   "cap_base": 2,
+   "cap_max": 4,
+   "cap_min": 1
+  },
+  "internal_vs_external": {
+   "note": "internal organs are few and stable: one prescription each is enough (2026-11-11 user: 'internal organs only do a handful of things, they rarely break'). External sensing (11) and effectors (12) are a different class: many parameters, high refresh rate, they need decimation/batching rather than one prescription per organ.",
+   "internal": {
+    "prescriptions": 4,
+    "organs": [
+     "backup",
+     "align",
+     "immunity",
+     "consolidate"
+    ],
+    "rule": "one action + precedent is enough"
+   },
+   "external": {
+    "sense_slot": 11,
+    "effect_slot": 12,
+    "rule": "many params, real-time: batch and decimate, do not model per-parameter prescriptions",
+    "status": "sense has 3 entry points (--text/--file/--stdin); effect is empty (path null)"
+   }
+  },
+  "supervision": {
+   "note": "the center decides whether a dead loop gets restarted; the supervisor only executes the order (2026-11-11 user: this is the center's judgement, then it issues the move).",
+   "max_restarts_per_window": 3,
+   "window_s": 60,
+   "on_limit": "stop and escalate to a person (restart-storm)",
+   "events": "track/proc-exit.jsonl",
+   "orders": "track/proc-cmd.jsonl"
+  },
+  "cadence": {
+   "note": "three ticks (2026-11-11 user: constant / fast / slow). The rate must be smaller than the time scale of what can break: heart 3s beats, so the heart check runs every minute; other organs can wait 30 minutes.",
+   "constant": {
+    "what": "heartbeat",
+    "every_s": 60,
+    "why": "a 610 s outage fell between two 30 min center rounds and was judged state 0"
+   },
+   "fast": {
+    "what": "pace and single-organ silence",
+    "every_min": 5
+   },
+   "slow": {
+    "what": "verdict, brain plan, mind",
+    "every_min": 30
+   }
+  }
+ },
+ "records": {
+  "note": "data records read by code must have declared types here; a field whose type varies is a bug, not a style. Write a draft, then run core/immunity.mjs and fix from its report.",
+  "memories_jsonl": {
+   "file": "memories.jsonl",
+   "one_line_per": "memory entry",
+   "fields": {
+    "id": "string",
+    "layer": "string",
+    "project": "string",
+    "subcategory": "string",
+    "status": "string",
+    "importance": "number",
+    "content": "string",
+    "keywords": "string holding a JSON array (parse before use)",
+    "updated_at": "number (epoch ms)"
+   }
+  },
+  "bus_jsonl": {
+   "file": "track/bus.jsonl",
+   "one_line_per": "signal",
+   "fields": {
+    "ts": "number (epoch ms)",
+    "at": "string",
+    "src": "string",
+    "kind": "number",
+    "state": "number",
+    "value": "number",
+    "evid": "string",
+    "rush": "number"
+   }
+  },
+  "events_jsonl": {
+   "file": "track/events.jsonl",
+   "one_line_per": "event",
+   "fields": {
+    "at": "string",
+    "src": "string",
+    "kind": "number",
+    "state": "number",
+    "value": "number",
+    "evid": "string",
+    "why": "string"
+   }
+  },
+  "brain_jsonl": {
+   "file": "track/brain.jsonl",
+   "one_line_per": "plan",
+   "fields": {
+    "at": "string",
+    "verdict_at": "string|null",
+    "heart": "object|null",
+    "items": "array",
+    "counts": "object",
+    "state": "number",
+    "evid": "string"
+   }
+  },
+  "dispatch_jsonl": {
+   "file": "track/dispatch.jsonl",
+   "one_line_per": "dispatch decision",
+   "fields": {
+    "at": "string",
+    "from": "string",
+    "cell": "string",
+    "reason": "string",
+    "rush": "number",
+    "tier": "number",
+    "ok": "boolean",
+    "why": "string"
+   }
+  },
+  "center_json": {
+   "file": "track/center.json",
+   "one_object": true,
+   "fields": {
+    "beats": "number",
+    "bySrc": "object",
+    "byState": "object",
+    "transitions": "number",
+    "maxGapMs": "number",
+    "gapAt": "string|null",
+    "lastAt": "string",
+    "events": "number",
+    "discharged": "number",
+    "lastSeen": "object",
+    "rebuilt": "string",
+    "bySrcState": "object",
+    "roster": "object",
+    "overdue": "array",
+    "never": "array",
+    "verdict": "object",
+    "chain": "object",
+    "vital": "object"
+   }
+  },
+  "nucleus_json": {
+   "file": "track/mind/nucleus.json",
+   "one_object": true,
+   "fields": {
+    "at": "string",
+    "prev_at": "string|null",
+    "cur": "object",
+    "delta": "object|null"
+   }
+  },
+  "in_raw_jsonl": {
+   "file": "track/in-raw.jsonl",
+   "one_line_per": "external input",
+   "fields": {
+    "at": "string (ISO-8601)",
+    "source": "string (text|file|stdin)",
+    "speaker": "string (user|file|web|self)",
+    "bytes": "number",
+    "text": "string",
+    "words": "number (token count)",
+    "uniq": "number (distinct tokens)",
+    "novelty_pct": "number 0-100 (share of tokens never seen before in in-raw)"
+   }
+  },
+  "center_heart_json": {
+   "file": "track/center-heart.json",
+   "one_object": true,
+   "fields": {
+    "at": "string",
+    "ok": "boolean",
+    "gap_ms": "number",
+    "limit_ms": "number",
+    "last": "number (epoch ms)"
+   }
+  },
+  "proc_exit_jsonl": {
+   "file": "track/proc-exit.jsonl",
+   "one_line_per": "loop process exit",
+   "fields": {
+    "ts": "number (epoch ms)",
+    "at": "string",
+    "name": "string",
+    "cell": "number",
+    "pid": "number|null"
+   }
+  },
+  "proc_cmd_jsonl": {
+   "file": "track/proc-cmd.jsonl",
+   "one_line_per": "center order for a dead loop",
+   "fields": {
+    "at": "string",
+    "name": "string",
+    "cell": "string",
+    "action": "string (restart|stop)",
+    "restarts_in_window": "number",
+    "max_restarts_per_window": "number",
+    "why": "string",
+    "from": "string"
+   }
+  },
+  "mem_history_jsonl": {
+   "file": "track/mem-history.jsonl",
+   "one_line_per": "superseded memory version",
+   "fields": {
+    "at": "string",
+    "seq": "number",
+    "id": "string",
+    "zone_id": "string",
+    "sha16": "string",
+    "why": "string",
+    "reason": "string",
+    "valid_from": "number",
+    "valid_to": "number",
+    "content": "string"
+   }
+  },
+  "mem_cites_jsonl": {
+   "file": "track/mem-cites.jsonl",
+   "one_line_per": "memory citations of one mind round",
+   "fields": {
+    "at": "string",
+    "round": "number",
+    "n": "number",
+    "cited": "array of strings (memory seq)"
+   }
+  },
+  "mem_index_jsonl": {
+   "file": "track/index-all.jsonl",
+   "one_line_per": "derived row: one page or one memory",
+   "fields": {
+    "uid": "string (P<id>|M<seq>)",
+    "kind": "string (page|mem)",
+    "id": "string",
+    "ref": "string|null",
+    "tier": "string",
+    "status": "string",
+    "importance": "number|null",
+    "updated_at": "number|null"
+   }
+  },
+  "mem_tier_jsonl": {
+   "file": "track/mem-tier.jsonl",
+   "one_line_per": "memory tier verdict",
+   "fields": {
+    "seq": "number",
+    "layer": "string",
+    "importance": "number",
+    "status": "string",
+    "tier": "string (hot|warm|cold)",
+    "score": "number|null",
+    "reason": "string",
+    "ageDays": "number|null"
+   }
+  },
+  "watchdog_heal_jsonl": {
+   "file": "track/watchdog.heal.jsonl",
+   "one_line_per": "watchdog observation or restart",
+   "fields": {
+    "at": "string",
+    "heartAge": "number|null",
+    "action": "string (reported-only|restart-launcher|restart-launcher-result)",
+    "heartAgeBefore": "number|null",
+    "heartAgeAfter": "number|null",
+    "note": "string|null"
+   }
+  }
+ },
+ "pages": {
+  "note": "rules about the notebook pages; the page is addressed by its numeric prefix so this file stays pure ASCII",
+  "blocks": {
+   "1": {
+    "id": "index",
+    "pages": [
+     "0-",
+     "14-"
+    ]
+   },
+   "2": {
+    "id": "people",
+    "pages": [
+     "9-",
+     "6-"
+    ]
+   },
+   "3": {
+    "id": "running",
+    "pages": [
+     "1-",
+     "10-",
+     "7-"
+    ]
+   },
+   "4": {
+    "id": "environment",
+    "pages": [
+     "4-",
+     "2-"
+    ]
+   },
+   "5": {
+    "id": "criteria",
+    "pages": [
+     "5-",
+     "12-",
+     "11-",
+     "13-"
+    ]
+   },
+   "6": {
+    "id": "evidence",
+    "pages": [
+     "8-",
+     "3-"
+    ]
+   },
+   "7": {
+    "id": "memory",
+    "data": [
+     "track/workspace.json",
+     "memories.jsonl",
+     "track/hippocampus.json"
+    ]
+   },
+   "note": "memory blocks (2026-11-11): pages grouped by what they are for; the block number is the read order at wake. Pages are addressed by prefix only, so this stays ASCII."
+  },
+  "core": {
+   "dir": "notebook",
+   "prefix": "0-",
+   "max_bytes": 2048,
+   "min_sections": 3
+  },
+  "tombstone": {
+   "dir": "notebook",
+   "prefix": "3-",
+   "require_reason": true,
+   "require_now_rule": true
+  },
+  "timeline": {
+   "format": "YYYY-MM-DD HH:mm",
+   "non_decreasing": true,
+   "note": "patterns contain CJK prefixes, so they live in locales; spec only names the key",
+   "files": [
+    {
+     "name": "archive",
+     "dir": "notebook",
+     "prefix": "2-",
+     "pattern_key": "imm.timeline.archive"
+    },
+    {
+     "name": "worklog",
+     "dir": "notebook",
+     "prefix": "1-",
+     "pattern_key": "imm.timeline.worklog"
+    }
+   ]
+  }
+ },
+ "reminders": {
+  "note": "reminder-type rules: no failure mode of their own, they just tell a person something looks stale",
+  "wake_mark": {
+   "file": "track/wake-last.txt",
+   "format": "YYYY-MM-DD HH:mm:ss",
+   "max_age_h": 24,
+   "worn_after_h": 12
+  },
+  "snapshot": {
+   "source": "track/baseline.json",
+   "key": "snapAt",
+   "max_age_h": 30,
+   "note": "one original only: the self-set baseline. track/own was a second copy of the same idea and is no longer a source."
+  },
+  "trash": {
+   "dir": "trash",
+   "max_size_mb": 200,
+   "note": "deleted files pile up here first; empty only when the pile gets big"
+  }
+ },
+ "rules": {
+  "note": "two core-layer rules that used to live only as prose; each now has a runnable check so the core page can be trimmed later",
+  "evidence": {
+   "page": {
+    "dir": "notebook",
+    "prefix": "1-"
+   },
+   "claim_key": "imm.rules.claim_words",
+   "evidence_key": "imm.rules.evidence_marker"
+  },
+  "escalation": {
+   "streak_file": "track/warn-streak.json",
+   "streak": 3
+  }
+ },
+ "liveness": {
+  "note": "A-class: state that changes by itself every day. Rules here must be declared; tools stay in verify.",
+  "roots": {
+   "checker": "check-naming.mjs",
+   "max_defs": 1
+  },
+  "timers": {
+   "files": [
+    "start-timers.vbs",
+    "core/timers-alive.mjs"
+   ]
+  },
+  "self_set": {
+   "file": "track/baseline.json",
+   "max_age_days": 8,
+   "max_drift": 5,
+   "snapshot_cmd": "baseline.ps1"
+  }
+ },
+ "organ_intake": {
+  "note": "what counts as a protocol: it turns itself, uses its own beat as the baseline, and reports upward. A protocol is those three promises, not a format document. Inference is only the fallback when there is no protocol (mark it inferred); it never becomes the baseline",
+  "terms": {
+   "turn_itself": "it owns a loop sized by its own every; nobody carries it",
+   "report_its_own_pace": "preferred: it reports its own lateness (pace signal) when late/timeout/failed; inventing its own time base is allowed as long as it converts",
+   "emit_sig": "it ends with one SIG line, adapted by core/adapter.mjs",
+   "be_managed": "it is registered in registry (id + every) and has an owner plus entries in the immunity register"
+  },
+  "foreign_organ": {
+   "allowed": "like a charging handshake: infer first to learn its real parameters (tiers, rates, cadence), then build our own entry from what we found",
+   "rule": "run it at its own tier: the parameters observed are the ones in force, so the loop runs at the rate it actually offers. Our own entry is only the record of that, not a replacement rate. Mark the timing inferred (source=adapter), never as its self-report",
+   "why": "we are alive, we can go and find out; once the parameters are known there is no need to wait for the other side to hand us a table - we write ours",
+   "no_invented_default": "what is banned is not building our own entry, it is inventing values we never observed (a guessed degraded default) and passing them off as the fallback",
+   "order": [
+    "it has the protocol: read its table and connect, nothing else needed",
+    "it has tiers/parameters but they do not line up with ours: build the mapping that lands it on our tiers, and keep it as our own entry",
+    "nothing readable at all: infer by observation, then build the mapping onto our tiers"
+   ],
+   "when_mismatch": "build it to line up with our own tier: ours is the side that decides what an acceptable rate is; the other side only supplies what it can do"
+  },
+  "protocol_definition": {
+   "what_it_is": "better adapting: values settled in advance, so plugging in is a lookup instead of a derivation. The act of conversion is the protocol; the table is just where the preset values sit",
+   "our_tables_role": "spec.signal and the code tables are only where the conversion lands; they are the shape of the adapting, not the protocol by themselves",
+   "what_it_requires": [
+    "it turns itself",
+    "its own beat is the baseline",
+    "it reports upward"
+   ],
+   "fallback": "when it cannot report, infer its real parameters, then build our own mapping from them, marked inferred; the baseline stays our own clock",
+   "why_preset": "inference works but is slow: without preset values every new device costs a round of observation. With them, plug in and convert"
+  },
+  "vendor_protocol": {
+   "note": "our table is the reference: this is the starting point, later mainstream models/devices adapt to it. Taking a vendor table and mapping it into our signal fields is a transition, not the goal",
+   "steps": [
+    "read the vendor table",
+    "write a map into signal.required/optional plus state/kind/rush codes",
+    "adapter converts on the way to the bus"
+   ],
+   "where_the_map_lives": "spec.map for value conversions; adapter_protocol gets the protocol name once a common one exists",
+   "body_note": "a prosthetic body that turns itself and reports upward is connected exactly this way; we only translate its signals",
+   "direction": {
+    "reference": "spec.signal + state/kind/rush codes + organ_intake terms are ours; they define what it means to be plugged in",
+    "vendor_side": "a vendor adapts by writing the mapping on its own side; when it does, our adapter gets thinner and eventually disappears",
+    "transitional": "mapping on our side exists only while the other side has no protocol yet"
+   }
+  }
+ },
+ "formats": {
+  "version": 1,
+  "why": "2026-11-11 user: pick ONE convention instead of two (epoch ms vs ISO mixed in the same field name). Like the skeleton: one table, everyone reads it.",
+  "time": {
+   "machine": "field name is ts or ends with _ts -> integer epoch milliseconds",
+   "human": "field name is at or ends with _at -> ISO-8601 string with timezone",
+   "both_ok_note": "a record may carry both (ts for arithmetic, at for reading); they must describe the same instant",
+   "legacy_exception": "memories.jsonl carries updated_at as epoch ms today; it is a known debt, listed in track/format-debt.jsonl until the exporter emits updated_ts"
+  },
+  "numbers": "anything compared/sorted/added is a number, not a string",
+  "strings": "only for humans; identifiers that machines parse stay pure ASCII",
+  "checker": "node core/check-formats.mjs"
+ },
+ "memory": {
+  "signal": {
+   "version": 1,
+   "why": "one table for every memory score factor. Before this, the 30-day half-life and the importance gain were written twice (core/memsearch.mjs and core/mem-tier.mjs): same numbers today, split tomorrow. Definition lives here; callers only use it.",
+   "half_life_days": 30,
+   "importance_gain": 0.15,
+   "importance_cap": 4,
+   "hits_gain": 0.12,
+   "status_weight": {
+    "active": 1.0,
+    "stale": 0.6,
+    "archived": 0
+   },
+   "note": "tier thresholds (hot/cold cutoffs) are NOT here: they belong to core/mem-tier.json. This file only holds the shared factors."
+  },
+  "tier": {
+   "version": 1,
+   "why": "memory tiering: what is kept hot, what sinks to cold, and why. Prior art: MemGPT (main context vs external storage tiers), OS page replacement (LRU / ARC: recency AND frequency, not recency alone), Generative Agents (score = recency x importance x relevance). We keep their skeleton, not their thresholds.",
+   "half_life_days": 30,
+   "status_weight": {
+    "active": 1.0,
+    "stale": 0.6,
+    "archived": 0
+   },
+   "never_cold_layers": [
+    "rules",
+    "soul",
+    "user"
+   ],
+   "never_cold_note": "criteria and who-the-user-is must not sink silently: a cold criterion is a broken system, not a tidy one",
+   "hot": {
+    "min_importance": 4,
+    "max_age_days": 7
+   },
+   "cold": {
+    "max_score": 0.3,
+    "or_importance_at_most": 1,
+    "or_age_days": 90
+   },
+   "reason_codes": {
+    "hot-important": "importance >= 4: it decides behaviour, keep it in front",
+    "hot-recent": "updated within 7 days: still being revised",
+    "cold-old-low": "low importance and untouched for a long time",
+    "cold-score": "composite score below threshold (recency x importance x status)",
+    "never-cold": "layer is criteria/identity: never sinks automatically",
+    "no-timestamp": "no updated_at in the export: a thing we cannot date must not be sunk (unknown age is not old age)"
+   },
+   "output": "track/mem-tier.jsonl (one line per memory when --write: seq, tier, score, reason)",
+   "note": "the slow lane of archiving (2026-11-11: merged under the existing archive policy; this is NOT a separate tiering regime). archive = cold storage for files; tier = which memories stop being searched first. Same question: what gets old, where does it go."
+  },
+  "note": "one table for memory: scoring factors (signal) + tier thresholds (tier). Independent files core/memsignal.json and core/mem-tier.json were merged here on 2026-11-11 (user: merge into one single table)."
+ },
+ "data": {
+  "note": "who may read which data file; merged from core/readers.json on 2026-11-11",
+  "readers": {
+   "version": 1,
+   "why": "one data file, one receptor -- but only for STATE. Standards (spec/registry) are meant to be read by everyone; a single-reader standard becomes a private protocol.",
+   "rules": {
+    "config": "read by many is fine; nobody writes it except a version bump",
+    "state": "exactly one writer and one reader; more readers must be registered here with a reason",
+    "orphan": "a data file nobody reads is dead weight or is missing its consumer"
+   },
+   "files": {
+    "track/center.json": {
+     "kind": "state",
+     "writers": [
+      "core/consolidate.mjs"
+     ],
+     "readers": [
+      "core/brain.mjs",
+      "core/mind.mjs"
+     ],
+     "exception": "two roles, not two competing readers: brain turns the verdict into a plan, mind reads the same verdict to think; merging would collapse the layering"
+    },
+    "track/bus.jsonl": {
+     "kind": "state",
+     "writers": [
+      "core/bus.mjs",
+      "core/bus-rotate.mjs"
+     ],
+     "readers": [
+      "core/adapter.mjs",
+      "core/drift.mjs",
+      "core/mind.mjs",
+      "core/pulse.mjs",
+      "core/reflex.mjs",
+      "core/immunity.mjs",
+      "core/timers-alive.mjs"
+     ],
+     "exception": "append-only log: many tail readers is the point; the append point is single (bus.mjs), rotate only moves files"
+    },
+    "core/spec.json": {
+     "kind": "config",
+     "note": "the common protocol; many readers by design"
+    },
+    "core/registry.json": {
+     "kind": "config",
+     "note": "organ table; many readers by design"
+    }
+   }
+  },
+  "zones": {
+   "note": "stable numeric ids for memory zones. Values are ASCII slugs (project/layer; the global layer is spelled \"global\"). The Chinese display name lives in core/locales/zh.json as zone.<id>. Append-only: renaming changes the NAME, never the id.",
+   "map": {
+    "Z1": "coo-day1/lesson",
+    "Z2": "coo-day1/rules",
+    "Z3": "coo-day1/fact",
+    "Z4": "global/lesson",
+    "Z5": "coo-day1/project",
+    "Z6": "global/rules",
+    "Z7": "coo-day1/topic",
+    "Z8": "user",
+    "Z9": "dsh-notebook/lesson",
+    "Z10": "dsh-memory-kit/lesson",
+    "Z11": "coo-channel/lesson",
+    "Z12": "dsh-memory-kit/fact",
+    "Z13": "coo-channel/fact",
+    "Z14": "coo-channel/project",
+    "Z15": "dsh-notebook/fact",
+    "Z16": "dsh/fact",
+    "Z17": "dsh/lesson",
+    "Z18": "dsh/project",
+    "Z19": "dsh-memory-kit/project",
+    "Z20": "global/fact",
+    "Z21": "dsh,dsh-notebook/lesson",
+    "Z22": "coo-day1,dsh-notebook/lesson",
+    "Z23": "dsh/topic",
+    "Z24": "dsh-notebook/topic",
+    "Z25": "soul",
+    "Z26": "meow-memory/project",
+    "Z27": "dsh-notebook/project",
+    "Z28": "coo-day1,dsh-memory-kit/project",
+    "Z29": "meow-memory/fact",
+    "Z30": "dsh,coo-day1/fact",
+    "Z31": "meow-memory/lesson",
+    "Z32": "coo-day1,dsh/lesson",
+    "Z33": "dsh,coo-day1/lesson",
+    "Z34": "coo-day1,dsh/topic",
+    "Z35": "dsh-memory-kit/topic",
+    "Z36": "dsh-notebook,dsh-memory-kit/rules",
+    "Z37": "dsh,coo-day1/rules",
+    "Z38": "dsh-notebook/rules",
+    "Z39": "dsh-memory-kit/rules",
+    "Z40": "dsh/rules"
+   }
+  },
+  "origin": {
+   "note": "where a record came from: ONE vocabulary for archive entries and memory entries. The archive page prints the Chinese label; the exported data carries the ASCII code.",
+   "levels": [
+    "stated",
+    "observed",
+    "inferred",
+    "unverified"
+   ],
+   "zh": {
+    "stated": "original words",
+    "observed": "observation",
+    "inferred": "inference",
+    "unverified": "pending verification"
+   },
+   "archive_labels": {
+    "observed": "observation",
+    "inferred": "inference",
+    "unverified": "pending"
+   },
+   "gap": "closed 2026-11-11: the archive page had a pending bucket and the data layer did not; unverified now exists on both sides (the old version leads, the memory layer grows out of it)"
+  }
+ }
+}
