@@ -283,7 +283,9 @@ const CHECKS = {
     const raw = String(readFileSync(p, 'utf8')).trim()
     const m = raw.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/)
     if (!m) return { ok: false, detail: zh('imm.wake.bad', raw.slice(0, 30)) }
-    const ageH = (Date.now() - new Date(m[1].replace(' ', 'T') + 'Z').getTime()) / 3600000
+    // 2026-11-12: wake-last.txt 写的是本机时间，原先硬加 'Z' 当 UTC 解析，
+  // 于是报出「-5.7 小时前」这种负数。按本地时间解析（不加 Z）。
+  const ageH = (Date.now() - new Date(m[1].replace(' ', 'T')).getTime()) / 3600000
     const maxH = Number(cfg.max_age_h || 24)
     const wornH = Number(cfg.worn_after_h || 12)
     const level = ageH > maxH ? 2 : ageH > wornH ? 1 : 0

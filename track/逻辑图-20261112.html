@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>守链 · 逻辑图（照版式）</title>
+<style>
+  :root { --ink:#111; --line:#333; --soft:#f4f4f4; --box:#fff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#eef0f2; font-family:"Microsoft YaHei",system-ui,sans-serif; color:var(--ink); }
+  .canvas { width:1680px; margin:24px auto; background:#fff; border:1px solid #d5d5d5; padding:28px 32px 36px; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub { font-size:13px; color:#666; margin-bottom:22px; }
+  .grid { display:grid; grid-template-columns: 240px 150px 1fr 150px 240px; gap:14px 10px; align-items:start; }
+  .box { border:1.6px solid var(--line); background:var(--box); padding:10px 12px; font-size:13px; line-height:1.5; }
+  .box b { display:block; font-size:13.5px; margin-bottom:2px; }
+  .box small { color:#555; font-size:11.5px; }
+  .zone { border:2px solid var(--line); padding:12px; background:#fcfcfc; }
+  .zone > .zt { font-size:13.5px; font-weight:700; margin-bottom:8px; }
+  .row { display:flex; gap:8px; }
+  .row > .box { flex:1; }
+  .arrow { text-align:center; font-size:20px; color:#444; line-height:1.2; padding-top:14px; }
+  .down { text-align:center; font-size:20px; color:#444; }
+  .loop { border:1.6px dashed #555; border-radius:14px; padding:8px 12px; font-size:12.5px; background:#fff; text-align:center; }
+  .gate { border:1.6px solid #000; background:#000; color:#fff; padding:10px 8px; font-size:12.5px; text-align:center; }
+  .legend { margin-top:18px; font-size:12px; color:#444; display:flex; gap:26px; flex-wrap:wrap; }
+  .legend span::before { content:"■ "; color:#888; }
+  .muted { color:#777; }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <h1>守链 · 逻辑图（一次心跳里，谁读谁、谁写回）</h1>
+  <div class="sub">照「场景 → 记忆/技能/画像 → 会话 → 项目 → 归档 → 自动归纳 → 验证闸」的版式画；框里的名字都能在 <code>core/registry.json</code> 里找到，不是比喻。</div>
+
+  <div class="grid">
+    <!-- 左列：记忆与画像 -->
+    <div class="zone">
+      <div class="zt">记忆区（被读，不驱动）</div>
+      <div class="box"><b>定位卡</b><small>notebook/0-核心.md<br>1216 B / 3 节 · 开机只读这个索引</small></div>
+      <div class="box" style="margin-top:8px"><b>场景私有记忆</b><small>track/workspace.json（握着的 7 件）<br>memories.jsonl 699 条 · 索引 index-all</small></div>
+      <div class="box" style="margin-top:8px"><b>场景画像</b><small>track/baseline.json 静态自体<br>self-baseline.json 动态自体（只学正常态）</small></div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <!-- 中列：会话与项目 -->
+    <div class="zone" style="grid-column: span 3">
+      <div class="zt">一次心跳（会话）＝一圈跑完</div>
+      <div class="row">
+        <div class="box"><b>① 读</b><small>上一轮的痕迹<br>bus 尾行 + 工作区</small></div>
+        <div class="box"><b>② 测</b><small>15 drift<br>只测不判</small></div>
+        <div class="box"><b>③ 判</b><small>18 consolidate<br>套阈值 → center.verdict</small></div>
+        <div class="box"><b>④ 初判</b><small>20 brain<br>拿一手 rows 再判、排序</small></div>
+        <div class="box"><b>⑤ 想</b><small>21 mind<br>L1 理解 / L2 怎么做 / L3 回原始记录重判</small></div>
+        <div class="box"><b>⑥ 下发</b><small>arbiter 唯一出口<br>同器官冷却</small></div>
+      </div>
+
+      <div class="down">↓</div>
+
+      <div class="row">
+        <div class="zone" style="flex:1">
+          <div class="zt">私有技能（自动进化：谁被派、谁好转，都记账）</div>
+          <div class="row">
+            <div class="box"><b>1 verify</b><small>51 项</small></div>
+            <div class="box"><b>2 pin</b><small>103 项对账</small></div>
+            <div class="box"><b>5 backup</b><small>双盘</small></div>
+            <div class="box"><b>17 immunity</b><small>38 条</small></div>
+            <div class="box"><b>19 damage</b><small>动手前先查</small></div>
+          </div>
+        </div>
+        <div class="box" style="width:170px"><b>项目（派活）</b><small>track/dispatch.jsonl<br>377+ 条：谁下发、给谁、理由</small></div>
+      </div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <!-- 右列：归档与归纳 -->
+    <div class="zone">
+      <div class="zt">归档备份</div>
+      <div class="box"><b>历史会话</b><small>track/bus.jsonl + archive/<br>一行一个 SIG，按天轮转</small></div>
+      <div class="box" style="margin-top:8px"><b>备份</b><small>coo-notes-*.zip 双盘<br>527 个文件</small></div>
+      <div class="loop" style="margin-top:10px">自动归纳 ↺ <small class="muted">18 consolidate = 只记不一样的<br>13 海马体 = 每次都「坏→好」带 why</small></div>
+      <div class="gate" style="margin-top:10px">验证闸<br><small>免疫 38 条 / 探针 12 个假样本<br>只拦形状，不拦判断</small></div>
+      <div class="box" style="margin-top:10px"><b>回写</b><small>海马体 clears → 下一轮 ⑤ 想<br>工作区续期/移出</small></div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span>实线框 = 有 path 且在跑（18 个）</span>
+    <span>空位 = 10 供能 / 12 效应器（图中未画，因为没有）</span>
+    <span>虚线 = 不是器官，是一个动作（归纳/回写）</span>
+    <span>黑框 = 闸门：只管「标不标准」，不管「对不对」</span>
+  </div>
+</div>
+</body>
+</html>

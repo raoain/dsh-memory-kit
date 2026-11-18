@@ -76,6 +76,18 @@ for (const n of readdirSync(join(ROOT, 'core'))) {
   if (/emit\('\d+'/.test(src)) bad.push({ file: `core/${n}`, why: "emit('N', ...): spec.signal.types says src is a number" })
 }
 
+// 2026-11-17 用户：「他有些要加标签的玩意，你他妈自己随手写的，没按标准来让他识别不出来就没反应」——
+// topic 以前只是 optional string，没有允许值：总线上 5 种标签，spec 里一种都没定义，规则也无法靠它认领。
+// 现在标准在 spec.signal.topic.allowed，出现枚举外的值就点名。
+{
+  const allowedTopics = new Set(JSON.parse(readFileSync(join(ROOT, 'core', 'spec.json'), 'utf8')).signal?.topic?.allowed ?? [])
+  const { rows } = tail('track/bus.jsonl', N)
+  rows.forEach((r) => {
+    if (!r || r.topic === undefined) return
+    if (!allowedTopics.has(String(r.topic))) bad.push({ file: 'track/bus.jsonl', field: 'topic', value: String(r.topic).slice(0, 40), why: 'topic is not in spec.signal.topic.allowed' })
+  })
+}
+
 const out = { checked: N, violations: bad.length, sample: bad.slice(0, 10), verdict: bad.length ? 'MIXED-TIME-FORMAT' : 'ok' }
 console.log(JSON.stringify(out, null, 2))
 if (isMain) process.exit(bad.length ? 1 : 0)

@@ -436,7 +436,7 @@ if (Test-Path $workF) {
     }
     if (-not $lastT) { $lastT = (Get-Date).AddHours(-2) }
     $unlogged = @(Get-ChildItem $Root -Recurse -Include *.ps1,*.md,*.mjs,*.json,*.jsonl -File -ErrorAction SilentlyContinue |
-        Where-Object { $_.FullName -notmatch '\\trash\\|\\build\\|\\archive\\|\\audio|\\out\\|\\align\\|\\mind\\' -and $_.Name -notmatch '^(warn-streak|state|baseline|预测数据|wake-last|1-工作|self-baseline|\.reflex-|\.dispatch-|bus\.jsonl|align\.jsonl|memories\.jsonl|\.probe-last|免疫表|脚本清单|center|events\.jsonl|watchdog\.jsonl|\.source-language|\.bus\.before-discharge|\.consolidate-cursor|drift-pending|drift-streak|drift-raw|\.arbiter|dispatch\.jsonl|brain\.jsonl|nucleus)' -and $_.LastWriteTime -gt $lastT }).Count
+        Where-Object { $_.FullName -notmatch '\\trash\\|\\build\\|\\archive\\|\\audio|\\out\\|\\align\\|\\mind\\' -and $_.Name -notmatch '^(warn-streak|state|baseline|预测数据|wake-last|1-工作|self-baseline|\.reflex-|\.dispatch-|bus\.jsonl|align\.jsonl|memories\.jsonl|\.probe-last|免疫表|脚本清单|center|events\.jsonl|watchdog\.jsonl|\.source-language|\.bus\.before-discharge|\.consolidate-cursor|drift-pending|drift-streak|drift-raw|\.arbiter|dispatch\.jsonl|brain\.jsonl|nucleus|escalate|mem-cites|workspace|读回|运行记录)' -and $_.LastWriteTime -gt $lastT }).Count
     if ($unlogged -gt 3) {
         Add-Result 'WARN' '改动留痕比' ("上次记录（{0}）之后又改了 {1} 个文件没记 → 跑 log.ps1" -f $lastT.ToString('HH:mm'), $unlogged)
     } else {

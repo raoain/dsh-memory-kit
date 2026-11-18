@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>守链 · 客户端 v0</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin:0; font:15px/1.6 "Microsoft YaHei",system-ui,sans-serif; background:#111417; color:#e6e6e6; }
+  header { padding:14px 18px; border-bottom:1px solid #242a30; display:flex; gap:16px; align-items:baseline; }
+  header b { font-size:17px; }
+  header span { color:#8b949e; font-size:13px; }
+  main { display:grid; grid-template-columns: 320px 1fr; gap:18px; padding:18px; }
+  .card { background:#161b20; border:1px solid #242a30; border-radius:8px; padding:14px; }
+  .k { color:#8b949e; font-size:12px; }
+  .v { font-size:22px; font-variant-numeric:tabular-nums; }
+  .ok { color:#4ade80; } .bad { color:#f87171; } .warn { color:#fbbf24; }
+  input[type=text] { width:100%; padding:10px; background:#0d1117; color:#e6e6e6; border:1px solid #30363d; border-radius:6px; }
+  button { margin-top:8px; padding:8px 14px; background:#2563eb; color:#fff; border:0; border-radius:6px; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:default; }
+  pre { background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:10px; overflow:auto; font-size:12px; max-height:260px; }
+  .row { display:flex; gap:14px; flex-wrap:wrap; }
+  .row .card { flex:1 1 150px; }
+</style>
+</head>
+<body>
+<header><b>守链 · 客户端 v0</b><span>只读状态 + 把话交给耳（sense）；不调模型</span></header>
+<main>
+  <section>
+    <div class="card">
+      <div class="k">心跳（距上一拍）</div>
+      <div class="v" id="hb">—</div>
+      <div class="k" id="hbnote"></div>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <div class="card"><div class="k">有 path 的器官</div><div class="v" id="org">—</div></div>
+      <div class="card"><div class="k">received 原文条数</div><div class="v" id="raw">—</div></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="k">最近一条总线信号</div>
+      <pre id="last">—</pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="card">
+      <div class="k">对个体说一句（交给 sense：算词数/新词率，写入原文，上总线）</div>
+      <input id="text" type="text" placeholder="例如：今天想让它先看心跳">
+      <button id="send">交出去</button>
+      <div id="result" class="k" style="margin-top:10px"></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="k">客户端说明</div>
+      <p style="color:#c9d1d9;font-size:13px;margin:6px 0 0">
+        这一版只做两件事：<b>看状态</b>（读 <code>track/</code> 与 <code>core/registry.json</code>）和<b>交输入</b>（调 <code>core/sense.mjs</code>）。
+        它<b>不做判断、不调模型</b>——判断在环里，模型只在要说话时才接。
+      </p>
+    </div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id)
+async function refresh () {
+  try {
+    const s = await (await fetch('/state')).json()
+    const hb = s.heartbeat_age_s
+    $('hb').textContent = hb === null ? '取不到' : hb + ' 秒'
+    $('hb').className = 'v ' + (hb === null ? 'bad' : hb <= 9 ? 'ok' : hb <= 120 ? 'warn' : 'bad')
+    $('hbnote').textContent = hb === null ? '总线上没有 src=7 的记录' : (hb <= 9 ? '心跳正常（上限 9 秒）' : '超过 9 秒，可能卡了')
+    $('org').textContent = s.organs_with_path + ' / ' + s.organs_total
+    $('raw').textContent = s.in_raw_lines
+    $('last').textContent = JSON.stringify(s.bus_last, null, 2)
+  } catch (e) {
+    $('hb').textContent = '连不上'
+    $('hb').className = 'v bad'
+  }
+}
+$('send').onclick = async () => {
+  const text = $('text').value
+  if (!text.trim()) return
+  $('send').disabled = true
+  $('result').textContent = '交出中…'
+  try {
+    const r = await (await fetch('/say', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text }) })).json()
+    $('result').textContent = r.ok ? ('已交给耳：' + (r.sense.out || '').split('\n')[0]) : ('失败：' + JSON.stringify(r.sense || r.error))
+    $('text').value = ''
+    refresh()
+  } catch (e) { $('result').textContent = '出错：' + e }
+  $('send').disabled = false
+}
+refresh()
+setInterval(refresh, 3000)
+</script>
+</body>
+</html>

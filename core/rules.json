@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "note": "reflex rules: when a signal matches, spawn the target organ. Conditions use STATE NAMES (pass/warn/fail/unknown) not numbers -- the numbers live in spec.state only, so renumbering there cannot silently break a rule. Order = tie-break; rush decides priority.",
+  "note": "reflex rules: when a signal matches, spawn the target organ. Conditions use STATE NAMES (pass/warn/fail/unknown) not numbers -- the numbers live in spec.state only, so renumbering there cannot silently break a rule. Order = tie-break; rush decides priority. 2026-11-17: a rule may key on `topic` (see spec.signal.topic.allowed); this is how an event kind decides who reacts.",
   "rules": [
     {
       "id": 1,
@@ -60,6 +60,17 @@
       },
       "rush": 2,
       "why": "self profile is not me -> record it"
+    },
+    {
+      "id": 6,
+      "when": {
+        "topic": "sense.text"
+      },
+      "then": {
+        "spawn": 18
+      },
+      "rush": 1,
+      "why": "outside text arrived -> let the hub summarise and judge it (first rule that keys on topic, 2026-11-17)"
     }
   ]
 }

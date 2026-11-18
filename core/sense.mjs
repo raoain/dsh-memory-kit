@@ -58,6 +58,8 @@ const novelty = toks.length ? Math.round((fresh / toks.length) * 100) : 0
 const counts = [Buffer.byteLength(text, 'utf8'), toks.length, uniq, novelty]
 const rec = { at: new Date().toISOString(), source, speaker, bytes: counts[0], words: toks.length, uniq, novelty_pct: novelty, text }
 appendFileSync(RAW, JSON.stringify(rec) + '\n', 'utf8')
-emit(11, 4, 0, counts[0], `sense:${source}/from:${speaker}/words:${toks.length}/new:${novelty}pct`, { rush: 0, counts })
+// topic is part of the standard (spec.signal.topic.allowed): it names WHAT KIND of event this is,
+// and only a topic lets a rule decide who reacts. Without it the input lands on the bus untouched.
+emit(11, 4, 0, counts[0], `sense:${source}/from:${speaker}/words:${toks.length}/new:${novelty}pct`, { rush: 0, counts, topic: 'sense.text' })
 console.log(`sense: ${counts[0]} bytes from ${source} (speaker ${speaker}, words ${toks.length}, new ${novelty}%)`)
 console.log(`SIG {"state":0,"counts":[${rec.bytes},1]}`)
