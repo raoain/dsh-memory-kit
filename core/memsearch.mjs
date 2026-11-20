@@ -30,7 +30,8 @@ export function loadDocs (p = DOCS) {
 // `exclude`: seq/id values already read recently — skipped, so the ring does not re-read the same
 // few memories every round (2026-11-11: retrieval refinement, "不重复读同一批").
 export function search (query, { k = 5, docs = null, docsPath = DOCS, now = Date.now(), exclude = [] } = {}) {
-  const all = docs || loadDocs(docsPath)
+  // 2026-11-19：归档＝可回指但**不可召回**。导出保留 archived（引用能解析），检索在这里挡掉。
+  const all = (docs || loadDocs(docsPath)).filter((d) => d.status !== 'archived')
   if (!all.length) return []
   const ex = new Set(exclude.map((x) => String(x)))
   const q = tokens(query)

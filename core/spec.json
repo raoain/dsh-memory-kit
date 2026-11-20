@@ -898,7 +898,15 @@
         "Z37": "dsh,coo-day1/rules",
         "Z38": "dsh-notebook/rules",
         "Z39": "dsh-memory-kit/rules",
-        "Z40": "dsh/rules"
+        "Z40": "dsh/rules",
+        "Z41": "coo-day1,dsh/project",
+        "Z42": "dsh-memory-kit,dsh-notebook/project",
+        "Z43": "global/soul",
+        "Z44": "global/user",
+        "Z45": "coo-day1,dsh-notebook/project",
+        "Z46": "coo-channel,dsh-notebook/fact",
+        "Z47": "dsh,coo-day1/topic",
+        "Z48": "coo-day1,dsh/rules"
       }
     },
     "origin": {

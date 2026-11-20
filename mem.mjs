@@ -112,9 +112,12 @@ function originOf (content) {
   }
   if (hist.length) appendFileSync(HISTORY, hist.map((h) => JSON.stringify(h)).join('\n') + '\n', 'utf8')
   saveSeq(seq)
-  const active = rows.filter((r) => r.status === 'active' || r.status === 'stale')
+  // 2026-11-19 根修：归档不等于消失。导出**全部**条目（含 archived），保留 seq 可回指；
+  // 「不可召回」由检索侧负责（core/memsearch.mjs 的 search 过滤 archived）。
+  // 之前只导 active+stale，导致读回里引用的 mem:<seq> 在归档后打不开。
+  const active = rows
   writeFileSync(OUT, active.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf8')
-  console.log(JSON.stringify({ ok: true, total: rows.length, exported: active.length, seq_assigned: maxSeq, out: OUT }))
+  console.log(JSON.stringify({ ok: true, total: rows.length, exported: active.length, archived: rows.filter((r) => r.status === 'archived').length, seq_assigned: maxSeq, out: OUT }))
 }
 
 // 检索实现搬进 core/memsearch.mjs（唯一实现，mind 也用同一套）；这里只负责 hits 回写与打印
