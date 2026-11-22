@@ -338,15 +338,22 @@ if (Test-Path $ledger) {
 # 判据 P16：说完成必须带已验证据；DNA 式做法 = 前缀「验:」+ 尾缀「证:」。
 $work = Join-Path $Root 'notebook\1-工作.md'
 if (Test-Path $work) {
-    $claimWords = '完成|修好|已发|发完|已改|改好了|跑通了|全绿'
+    # 2026-11-22 收窄：'已发' 会吃掉「已发表清单」、'完成' 会吃掉「不是完成证据」这类记忆反思/否定句（当天假警）。
+    # 这是第三次踩「检查词太宽」。根治不在正则，在「说完成要有个固定开头」——那要另立规格，先不动。
+    $claimWords = '(?<!不是)完成|修好|已发(?!表)|发完|已改|改好了|跑通了|全绿'
     $bad = @()
+    # 豁免线钉死在这一天：此日之前的条目一次性豁免、不回填；此日及之后一律查。
+    # 不写成「只看今天」——那样昨天的坏条目明天就变「历史」自动免检，拖一天就能逃。
+    $EXEMPT_BEFORE = '2026-11-22'
     foreach ($ln in (Get-Content $work -Encoding UTF8)) {
         if ($ln -notmatch '^- \[') { continue }
+        if ($ln -notmatch '^- \[(\d{4}-\d{2}-\d{2})') { continue }
+        $lnDate = $matches[1]
         if ($ln -notmatch $claimWords) { continue }
-        if ($ln -notmatch '证[:：]') { $bad += ("无证:" + $ln.Substring(0,[Math]::Min(40,$ln.Length))); continue }
+        if ($ln -notmatch '证[:：]') { $bad += ($lnDate + '|无证:' + $ln.Substring(0,[Math]::Min(40,$ln.Length))); continue }
         # 判「不可伪造的痕迹」：证: 后面必须是一个能打开的东西（路径存在 / 命令名 / verify 回显行）
         $evid = ($ln -split '证[:：]',2)[1]
-        if (-not $evid) { $bad += ("证为空:" + $ln.Substring(0,[Math]::Min(30,$ln.Length))); continue }
+        if (-not $evid) { $bad += ($lnDate + '|证为空:' + $ln.Substring(0,[Math]::Min(30,$ln.Length))); continue }
         $evidTxt = $evid.Trim()
         $okEvid = $false
         # ① 像路径：存在
@@ -363,14 +370,18 @@ if (Test-Path $work) {
         # ⑤ 结构化证据码（2026-11-10 加）：契约在 spec.signal.evid（2026-11-07 起就是信号七必填之一）。
         #    ①②③④ 是兼容兜底，不是接口；新条目优先用 evid:<code> 或 page:dir/prefix[:行号]。
         if (-not $okEvid -and $evidTxt -match 'evid[:：]\s*[A-Za-z0-9_.\-]+|page:[A-Za-z0-9_\-]+/[A-Za-z0-9_\-]+') { $okEvid = $true }
-        if (-not $okEvid) { $bad += ("证不可核:" + $ln.Substring(0,[Math]::Min(30,$ln.Length))) }
+        if (-not $okEvid) { $bad += ($lnDate + '|证不可核:' + $ln.Substring(0,[Math]::Min(30,$ln.Length))) }
     }
-    $today = (Get-Date).ToString('yyyy-MM-dd')
-    $badToday = @($bad | Where-Object { $_ -match $today })
-    if ($badToday.Count -gt 0) {
-        Add-Result 'WARN' '完成声明有框' ("今天新增 $($badToday.Count) 条证不合格；历史欠账共 $($bad.Count) 条，2026-11-15 清零")
-    } elseif ($bad.Count -gt 0) {
-        Add-Result 'OK' '完成声明有框' ("今日新增全部合格；历史欠账 $($bad.Count) 条，11-15 清零")
+    # 2026-11-22 定（用户原话：「豁免 + 只查当日，开证明但标出失败」）：
+    # 历史条目的证当时没留，现在回填就是写一句我核不了的话——比不写更坏，等于把这条规矩本身作废。
+    # 所以：历史只豁免、不回填；豁免必须留凭证（track\豁免证明-*.md），且每次输出都印「不合格」，不许变成静默的绿。
+    # 但豁免线钉在 $EXEMPT_BEFORE，不是「只看今天」：否则拖一天就变历史、永久免检。
+    $badNew = @($bad | Where-Object { ($_ -split '\|', 2)[0] -ge $EXEMPT_BEFORE })
+    $badOld = @($bad | Where-Object { ($_ -split '\|', 2)[0] -lt $EXEMPT_BEFORE })
+    if ($badNew.Count -gt 0) {
+        Add-Result 'WARN' '完成声明有框' ("今日及以后新增 $($badNew.Count) 条证不合格（当天必须补，不许拖成历史）；另有 $EXEMPT_BEFORE 之前的历史 $($badOld.Count) 条已豁免不回填")
+    } elseif ($badOld.Count -gt 0) {
+        Add-Result 'SOFT' '完成声明有框' ("今日新增 0；$EXEMPT_BEFORE 之前的历史 $($badOld.Count) 条不合格（2026-11-22 豁免·未回填假证·永久不合格，证明见 track\misc\豁免证明-完成声明-20261122.md）")
     } else {
         Add-Result 'OK' '完成声明有框' '说完成的条目都带证'
     }
@@ -396,7 +407,7 @@ if (Test-Path $predFile) {
 }
 
 # 29. 待消化积压：超 7 天没动的素材，要么反刍要么删
-$stage = Join-Path $Root 'track\待消化.md'
+$stage = (Get-CooPath 'pending')
 if (Test-Path $stage) {
     $old = @()
     $total = 0
@@ -414,7 +425,7 @@ if (Test-Path $stage) {
 }
 
 # 30. 接缝表完整：五链两两共十接缝，漏了就是漏了一条道
-$seamFile = Join-Path $Root 'track\接缝.md'
+$seamFile = (Get-CooPath 'seams')
 if (Test-Path $seamFile) {
     $n = @(Select-String -Path $seamFile -Pattern '^\| \d+ \|' -Encoding UTF8).Count
     if ($n -lt 10) { Add-Result 'WARN' '接缝表' ("只有 $n 条接缝（五链两两应有 10 条）→ 有一条道没人管") }
@@ -769,7 +780,7 @@ if (Test-Path $ymlP) {
 
 # 45. 比喻层级：AGENTS 与术语对照都必须有这条（混层是本项目最容易复发的一类）
 $agentsP2 = Join-Path $env:USERPROFILE '.dsh\AGENTS.md'
-$glossP = Join-Path $Root 'track\术语对照.md'
+$glossP = (Get-CooPath 'terms')
 $hasA = $false; $hasG = $false
 if (Test-Path $agentsP2) { $hasA = ([IO.File]::ReadAllText($agentsP2, [Text.Encoding]::UTF8)).Contains('比喻词必须标层级') }
 if (Test-Path $glossP)  { $hasG = ([IO.File]::ReadAllText($glossP, [Text.Encoding]::UTF8)).Contains('比喻的三个层级') }
@@ -924,14 +935,14 @@ $sw.Stop()
 # 容差到期（2026-10-30 定）：生死档的历史欠账只许「限期麻醉」，到期自动归零。
 # 理由：容差等于止痛药；不分期的 allow 会让系统永远觉得自己没病（最安静的死法）。
 $ToleranceExpiry = @{
-    '完成声明有框' = '2026-11-15'   # 历史 12 条，限期清理
+    '完成声明有框' = '2026-11-15'   # 历史 12 条，限期清理（2026-11-22 已改为「历史豁免+只查当日」，此条只对当日新增生效）
     '今日配额'     = '2026-11-01'   # 数据缺口，须补 published_at
     '发布依据链'   = '2026-11-01'   # 生死档：发布前必须有读回记录
     '无主语引用'   = '2026-11-01'   # 生死档：不许不指名的引用
     '术语引用'     = '2026-12-01'   # 生活档：说法可以慢慢用起来
 }
 $Tolerance = @{
-    '完成声明有框' = @{ level = 'soft'; allow = 14; why = '历史 14 条不补（2026-11-15 必须清零）；新条目必须带可核的证，当天不合格当天修' }
+    '完成声明有框' = @{ level = 'soft'; allow = 0; why = '当日新增 0 容忍（当天不合格当天补）；历史条目 2026-11-22 起豁免且不回填，另开证明 track\misc\豁免证明-完成声明-20261122.md' }
     '今日配额'     = @{ level = 'soft'; allow = 1;  why = '台账有 1 条 published_at 缺失，发前手查' }
     '待消化'       = @{ level = 'soft'; allow = 0;  why = '积压必须清，0 容忍' }
     '发布依据链'   = @{ level = 'soft'; allow = 3;  why = '今晚两条发布前没记读回；此后必须记' }

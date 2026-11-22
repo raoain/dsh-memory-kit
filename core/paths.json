@@ -1,0 +1,18 @@
+{
+  "_note": "Path table for scripts. Change the partition here, not in scripts (2026-11-22).",
+  "pending": "track/misc/\u5f85\u6d88\u5316.md",
+  "plan": "track/misc/\u5927\u8ba1\u5212.md",
+  "immunityTable": "track/misc/\u514d\u75ab\u8868.md",
+  "terms": "track/terms/\u672f\u8bed\u5bf9\u7167.md",
+  "mathchain": "track/theory/\u6570\u5b66-\u94fe.md",
+  "mathchainV2": "track/theory/\u6570\u5b66-\u94fe-v2.md",
+  "seams": "track/misc/\u63a5\u7f1d.md",
+  "cells": "track/misc/\u683c\u518c.md",
+  "metaphors": "track/misc/\u6bd4\u55bb\u4e0e\u8bf4\u6cd5.md",
+  "machineMap": "track/misc/\u673a\u5668\u5bf9\u5e94.md",
+  "borrowed": "track/misc/\u501f\u6765\u7684\u673a\u5236.md",
+  "theory1030": "track/theory/\u7406\u8bba\u5168\u6587-2026-10-30.md",
+  "restoreDrill": "track/misc/\u56de\u6863\u5b9e\u9a8c-\u5f85\u7b54.md",
+  "exemption": "track/misc/\u8c41\u514d\u8bc1\u660e-\u5b8c\u6210\u58f0\u660e-20261122.md",
+  "scriptsInventory": "track/misc/\u811a\u672c\u6e05\u5355.md"
+}

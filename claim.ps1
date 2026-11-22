@@ -23,8 +23,8 @@ $enc  = New-Object Text.UTF8Encoding($false)
 $nb   = Join-Path $Root 'notebook'
 
 # 目标文件
-if ($To -eq '待消化') { $path = Join-Path $Root 'track\待消化.md' }
-elseif ($To -eq '大计划') { $path = Join-Path $Root 'track\大计划.md' }
+if ($To -eq '待消化') { $path = (Get-CooPath 'pending') }
+elseif ($To -eq '大计划') { $path = (Get-CooPath 'plan') }
 else { $path = Join-Path $nb ($To + '.md') }
 
 if (-not (Test-Path $path)) { Write-Host "目标不存在：$path" -ForegroundColor Red; exit 1 }

@@ -1,4 +1,4 @@
-// scripts-inventory.mjs -- regenerate track/脚本清单.md from the actual files.
+// scripts-inventory.mjs -- regenerate track/misc/脚本清单.md from the actual files.
 //
 // Why: the user asked "a script has what inside? I don't even know what it contains."
 // Hand-written lists go stale the moment a file is added, so this list is generated:
@@ -187,4 +187,4 @@ else {
 lines.push('')
 
 writeFileSync(join(ROOT, 'track', '脚本清单.md'), lines.join('\n'), 'utf8')
-console.log(JSON.stringify({ files: rows.length, orphans: orphans.length, out: 'track/脚本清单.md' }))
+console.log(JSON.stringify({ files: rows.length, orphans: orphans.length, out: 'track/misc/脚本清单.md' }))

@@ -102,6 +102,33 @@ try {
         Where-Object { $_ -match '备份 →|记事本备份完成|警告' } | ForEach-Object { "  $_" }
 } catch { Write-Host '  backup-notes.ps1 跑不起来' -ForegroundColor Red }
 
+# 5b) 分纳归档 + 刷新索引（2026-11-22 用户定：每天收工把今天的结果分纳归档，再加索引）
+#     区册：track\区册\文件区册.md（A-本体理论 / B-术语 / C-杂项），由 track-index.ps1 生成，不手改。
+try {
+    $idxOut = powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'track-index.ps1') 2>&1
+    $idxLine = ($idxOut | Where-Object { $_ -match '区册已生成|分区:' }) -join ' ｜ '
+    if ($idxLine) { Write-Host ("  区册：{0}" -f $idxLine) -ForegroundColor Gray }
+    else { Write-Host '  区册：生成没回话（看 track-index.ps1）' -ForegroundColor Yellow }
+} catch { Write-Host '  track-index.ps1 跑不起来' -ForegroundColor Red }
+
+# 5c) 刷新压缩总纲里的数字（2026-11-22 用户：那个压缩你每次收工也得改得同时更新）
+#     只刷可机的部分（更新时间/账行数节数/verify 汇总/区划分区数）；结论部分手写，改了要人定。
+try {
+    $gOut = powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'guide-update.ps1') 2>&1
+    $gLine = ($gOut | Where-Object { $_ -match 'guide-update:|结果账 \*\*' }) -join ' ｜ '
+    if ($gLine) { Write-Host ("  总纲：{0}" -f $gLine) -ForegroundColor Gray }
+    else { Write-Host '  总纲：刷新没回话（看 guide-update.ps1）' -ForegroundColor Yellow }
+} catch { Write-Host '  guide-update.ps1 跑不起来' -ForegroundColor Red }
+
+# 5d) 插件数据回拉本体（2026-11-22 用户：C 方向，插件 -> 本机；标准是「去掉插件也能运行」，
+#     所以插件写的东西本体里必须有记录，哪怕插件以后没了）
+try {
+    $pOut = powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'plugin-sync.ps1') 2>&1
+    $pLine = ($pOut | Where-Object { $_ -match 'plugin-sync:' }) -join ' ｜ '
+    if ($pLine) { Write-Host ("  插件：{0}" -f $pLine) -ForegroundColor Gray }
+    else { Write-Host '  插件：回拉没回话（看 plugin-sync.ps1）' -ForegroundColor Yellow }
+} catch { Write-Host '  plugin-sync.ps1 跑不起来' -ForegroundColor Red }
+
 # 6) 便签提示（便签本身在 1-工作.md 头部）
 Write-Host ''
 Write-Host '便签三条（写在 1-工作.md 头部）：刚聊到哪 / 答应了什么 / 下次接着说什么' -ForegroundColor Cyan

@@ -15,7 +15,7 @@ $ErrorActionPreference = 'Continue'
 $gaps = @()
 
 # ① 待消化里「卡在」不是"已完成"的
-$pend = Join-Path $Root 'track\待消化.md'
+$pend = (Get-CooPath 'pending')
 if (Test-Path $pend) {
     foreach ($ln in (Get-Content $pend -Encoding UTF8)) {
         if ($ln -notmatch '^- \[2026') { continue }

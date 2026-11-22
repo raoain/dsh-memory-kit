@@ -36,7 +36,7 @@ function Measure-State {
     $s['页数']       = @(Get-ChildItem $nb -Filter '*.md' -File).Count
     $s['脚本数']     = @(Get-ChildItem $Root -Filter '*.ps1' -File).Count
     $s['grep样本数'] = 0
-    foreach ($jf in @('track\收敛.jsonl','track\读回.jsonl','track\发布台账.jsonl','track\待消化.md')) {
+    foreach ($jf in @('track\收敛.jsonl','track\读回.jsonl','track\发布台账.jsonl','track\misc\待消化.md')) {
         $p = Join-Path $Root $jf
         if (Test-Path $p) { $s[$jf] = @(Get-Content $p -Encoding UTF8 | Where-Object { $_.Trim() }).Count }
     }

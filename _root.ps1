@@ -34,3 +34,13 @@ if (-not $Root) {
 $Notebook = Join-Path $Root 'notebook'
 $Track = Join-Path $Root 'track'
 $Core = Join-Path $Root 'core'
+
+# 2026-11-22: path table (core/paths.json) — scripts must not hardcode track file paths.
+# usage: $p = Get-CooPath 'pending'
+function Get-CooPath([string]$key) {
+    $pf = Join-Path (Join-Path $Root 'core') 'paths.json'
+    if (-not $script:CooPaths) { $script:CooPaths = (Get-Content $pf -Raw -Encoding UTF8 | ConvertFrom-Json) }
+    $rel = $script:CooPaths.$key
+    if (-not $rel) { throw ("paths.json has no key: " + $key) }
+    return (Join-Path $Root ($rel -replace '/', '\'))
+}

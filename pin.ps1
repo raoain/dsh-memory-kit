@@ -21,6 +21,9 @@ param(
     [string]$Root = ''
 )
 if (-not $Root) { $Root = $PSScriptRoot }
+# 2026-11-22: 加路径表 helper（Get-CooPath）。以前这脚本自己管 $Root、没 dot-source _root.ps1，
+# 所以改成路径表后 doc.* 项全部取不到值（WARN「现场算不出来了」）。_root.ps1 只填空值，不会覆盖这里的 -Root。
+. (Join-Path $PSScriptRoot '_root.ps1')
 # 参数默认值在绑定阶段求值，那时 $Root 还不存在——所以空着，到这里再拼（2026-11-09 修）
 if (-not $StateFile) { $StateFile = Join-Path $Root 'state.json' }
 
@@ -67,23 +70,23 @@ function Resolve-Pin($key) {
         '^doc\.work$' { $p = Join-Path $Root 'notebook\1-工作.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
         '^doc\.archive$' { $p = Join-Path $Root 'notebook\2-档案.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
         '^doc\.native$' { $p = Join-Path $Root 'notebook\4-本机.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
-        '^doc\.mathchain$' { $p = Join-Path $Root 'track\数学-链.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
-        '^doc\.mathchainv2$' { $p = Join-Path $Root 'track\数学-链-v2.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
-        '^doc\.machinemap$' { $p = Join-Path $Root 'track\机器对应.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
-        '^doc\.theory$' { $p = Join-Path $Root 'track\理论全文-2026-10-30.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
-        '^doc\.metaphor$' { $p = Join-Path $Root 'track\比喻与说法.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
-        '^doc\.glossary$' { $p = Join-Path $Root 'track\术语对照.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
-    '^doc\.registers$' { $p = Join-Path $Root 'track\格册.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
-        '^doc\.plan$' { $p = Join-Path $Root 'track\大计划.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
+        '^doc\.mathchain$' { $p = (Get-CooPath 'mathchain'); if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
+        '^doc\.mathchainv2$' { $p = (Get-CooPath 'mathchainV2'); if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
+        '^doc\.machinemap$' { $p = (Get-CooPath 'machineMap'); if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
+        '^doc\.theory$' { $p = (Get-CooPath 'theory1030'); if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
+        '^doc\.metaphor$' { $p = (Get-CooPath 'metaphors'); if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
+        '^doc\.glossary$' { $p = (Get-CooPath 'terms'); if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
+    '^doc\.registers$' { $p = (Get-CooPath 'cells'); if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
+        '^doc\.plan$' { $p = (Get-CooPath 'plan'); if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
         '^doc\.recall$' { $p = Join-Path $Root 'track\读回.jsonl'; if (Test-Path $p) { return [string]((Get-Content $p -Encoding UTF8 | Where-Object { $_.Trim() } | Measure-Object).Count) } else { return $null } }
         '^doc\.load$' { $p = Join-Path $Root 'track\载荷.jsonl'; if (Test-Path $p) { return [string]((Get-Content $p -Encoding UTF8 | Where-Object { $_.Trim() } | Measure-Object).Count) } else { return $null } }
         '^doc\.contrast$' { $p = Join-Path $Root 'notebook\13-对照.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
         '^doc\.criteria2$' { $p = Join-Path $Root 'notebook\12-判据-专项.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
         '^doc\.start$' { $p = Join-Path $Root 'start.ps1'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
-        '^doc\.seams$' { $p = Join-Path $Root 'track\接缝.md'; if (Test-Path $p) { return [string]((Select-String -Path $p -Pattern '^\| \d+ \|' -Encoding UTF8 | Measure-Object).Count) } else { return $null } }
+        '^doc\.seams$' { $p = (Get-CooPath 'seams'); if (Test-Path $p) { return [string]((Select-String -Path $p -Pattern '^\| \d+ \|' -Encoding UTF8 | Measure-Object).Count) } else { return $null } }
         '^doc\.converge$' { $p = Join-Path $Root 'track\收敛.jsonl'; if (Test-Path $p) { return [string]((Get-Content $p -Encoding UTF8 | Where-Object { $_.Trim() } | Measure-Object).Count) } else { return $null } }
         '^doc\.conclusions$' { $p = Join-Path $Root 'notebook\11-结论.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
-        '^doc\.staging$' { $p = Join-Path $Root 'track\待消化.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
+        '^doc\.staging$' { $p = (Get-CooPath 'pending'); if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
         '^doc\.chains$' { $p = Join-Path $Root 'notebook\10-链.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
         '^doc\.user$' { $p = Join-Path $Root 'notebook\9-用户.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
         '^doc\.quotes$' { $p = Join-Path $Root 'notebook\8-原话.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
@@ -91,7 +94,7 @@ function Resolve-Pin($key) {
         '^doc\.words$' { $p = Join-Path $Root 'notebook\6-话.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
         '^doc\.criteria$' { $p = Join-Path $Root 'notebook\5-判据.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
         '^doc\.readme$' { $p = Join-Path $Root 'README.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
-        '^doc\.borrowed$' { $f = Join-Path $Root 'track\借来的机制.md'; if (Test-Path $f) { return (Get-FileHash $f -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
+        '^doc\.borrowed$' { $f = (Get-CooPath 'borrowed'); if (Test-Path $f) { return (Get-FileHash $f -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
         '^doc\.ruleslog$' { $p = Join-Path $Root 'rules-log.md'; if (Test-Path $p) { return (Get-FileHash $p -Algorithm SHA256).Hash.Substring(0,16) } else { return $null } }
         '^mem\.count$' { $p = Join-Path $Root 'memories.jsonl'; if (Test-Path $p) { return (Select-String -Path $p -Pattern '.' -Encoding UTF8 | Measure-Object).Count } else { return 0 } }
         '^datalog\.count$' { $p = Join-Path $Root 'heybox\data-log.jsonl'; if (Test-Path $p) { return (Select-String -Path $p -Pattern '.' -Encoding UTF8 | Measure-Object).Count } else { return 0 } }

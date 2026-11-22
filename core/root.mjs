@@ -24,3 +24,12 @@ export const ROOT = fromEnv ? resolve(fromEnv) : resolve(here, '..')
 if (!existsSync(resolve(ROOT, 'track'))) {
   throw new Error(`COO_ROOT looks wrong: ${ROOT} (no track/ inside)`)
 }
+
+// 2026-11-22: path table (core/paths.json) — modules must not hardcode track file paths.
+import { readFileSync as __readFileSync } from 'node:fs'
+const __PATHS = JSON.parse(__readFileSync(resolve(ROOT, 'core/paths.json'), 'utf8'))
+export function trackPath(key) {
+  const rel = __PATHS[key]
+  if (!rel) throw new Error(`paths.json has no key: ${key}`)
+  return resolve(ROOT, rel)
+}

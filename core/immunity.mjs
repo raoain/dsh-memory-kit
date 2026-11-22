@@ -7,7 +7,7 @@
 //      have deleted the checker while the rule stayed "covered" in the table)
 //   2. the live check still passes right now (a checker that exists but reports green on a
 //      broken system is worse than no checker)
-// It never repairs anything; it writes track/免疫表.md and reports a signal.
+// It never repairs anything; it writes track/misc/免疫表.md and reports a signal.
 //
 // usage:
 //   node core/immunity.mjs          check + write the table
@@ -247,7 +247,8 @@ const CHECKS = {
     let debt = 0
     for (const line of readFileSync(join(ROOT, dir, names[0]), 'utf8').split(/\r?\n/)) {
       if (!/^- \[/.test(line)) continue
-      if (!claimWords.some((w) => line.includes(w))) continue
+      // 2026-11-22：改成按正则匹配，和 verify 同一把尺（已发(?!表) 挡掉「已发表清单」这类假警）
+      if (!new RegExp(claimWords.join('|')).test(line)) continue
       const day = (line.match(/^- \[(\d{4}-\d{2}-\d{2})/) || [])[1] || ''
       let weak = false
       if (!evidRe.test(line)) weak = true
@@ -303,7 +304,26 @@ const CHECKS = {
     if (!at) return { ok: false, detail: zh('imm.snap.none') }
     const ageH = (Date.now() - at) / 3600000
     const maxH = Number(cfg.max_age_h || 30)
-    return { ok: ageH <= maxH, level: ageH > maxH ? 1 : 0, detail: zh('imm.snap.age', ageH.toFixed(1), maxH) }
+    if (ageH <= maxH) return { ok: true, level: 0, detail: zh('imm.snap.age', ageH.toFixed(1), maxH) }
+    // 2026-11-21 修（215 次 FAIL 的真因）：快照只在核心内容变化时才重拍，所以"年龄"本身不是病。
+    // 正确的判据是"快照还算不算数"= 快照里记的那几张页，现在还是不是同样的字节。
+    // 一样 → 快照仍然有效（内容没变，不需要重拍）；不一样 → 真的过期了，报是哪几张。
+    const changed = []
+    try {
+      const snap = JSON.parse(readFileSync(file, 'utf8'))
+      const st = snap.state || {}
+      for (const k of Object.keys(st)) {
+        if (!k.startsWith('bytes:')) continue
+        const rel = k.slice(6)
+        const p = join(ROOT, 'notebook', rel)
+        const nowBytes = existsSync(p) ? statSync(p).size : -1
+        if (nowBytes !== Number(st[k])) changed.push(rel)
+      }
+    } catch {
+      return { ok: false, level: 1, detail: zh('imm.snap.age', ageH.toFixed(1), maxH) }
+    }
+    if (!changed.length) return { ok: true, level: 0, detail: zh('imm.snap.same', ageH.toFixed(1)) }
+    return { ok: false, level: 1, detail: zh('imm.snap.diff', ageH.toFixed(1), maxH, changed.join(',')) }
   },
   // 2026-11-09 第三批搬迁：流水时间戳（格式与非递减在 spec.pages.timeline，正则里的中文前缀放 locales）
   'timeline-order': () => {

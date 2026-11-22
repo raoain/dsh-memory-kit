@@ -353,8 +353,8 @@ L4 小脑                          ← 只有有身体才需要；它的结果�
 | 环的五拍与「⑤ 的产物：习惯」 | `notebook/11-结论.md` C12 |
 | 三档与重复度 | `core/spec.json` 的 `channels`（fast/steady/slow + routing_rule） |
 | 思考层雏形（记忆位置＋环） | `core/mind.mjs`(21) + `track/mind/`（state / 按天 jsonl / habits） |
-| 方法五步与两个现成问法 | `notebook/11-结论.md` C12；工具＝`track/记忆理论翻面表.md`、`track/理论-见解补充-2026-11-01.md` |
-| 论道母本（更早的） | `track/理论全文-2026-10-30.md`、`理论全文-2026-11-01.md`、`理论-结构层-原话-2026-11-05.md` |
+| 方法五步与两个现成问法 | `notebook/11-结论.md` C12；工具＝`track/theory/记忆理论翻面表.md`、`track/theory/理论-见解补充-2026-11-01.md` |
+| 论道母本（更早的） | `track/theory/理论全文-2026-10-30.md`、`理论全文-2026-11-01.md`、`理论-结构层-原话-2026-11-05.md` |
 
 **一条纪律**：以后用户讲理论，当回合就落到 `track\理论-*.md`，不进 memory 就算没存。memory 是检索用的，母本是写作与复述用的。
 

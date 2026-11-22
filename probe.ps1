@@ -88,7 +88,9 @@ New-Item -ItemType Directory -Force -Path (Join-Path $pp 'notebook') | Out-Null
 $out10 = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'lint.ps1') -Path $pp 2>&1 | Out-String
 Add-Probe 'lint 抓判据重号' ($out10 -match 'md-pdup') $(if ($out10 -match 'md-pdup') { '报了 md-pdup' } else { '重号被放行 → 编号检查是哑炮' })
 
-# ── 11) 免疫 snapshot-fresh 吃过假样本：把基线时间拨到 40 小时前，必须报「旧」
+# ── 11) 免疫 snapshot-fresh 吃过假样本：把基线时间拨到 40 小时前，**并让记录的内容与当前不符**，必须报
+# 2026-11-22 修：判据已在 11-21 改成「年龄超限后比内容是否一致」（内容没变＝合法）。
+# 所以只拨时间不再构成错，假错样本必须同时造出「记录说 X 字节、实际不是」。
 $bl = Join-Path $Root 'track\baseline.json'
 $blBak = $bl + '.probebak'
 if (Test-Path $bl) {
@@ -96,9 +98,12 @@ if (Test-Path $bl) {
     try {
         $bj = Get-Content $bl -Raw -Encoding UTF8 | ConvertFrom-Json
         $bj.snapAt = (Get-Date).AddHours(-40).ToString('o')
+        # 把一个 bytes 记录改成一个不可能的值：当前页真实字节数不可能是 1
+        $k = ($bj.state.PSObject.Properties.Name | Where-Object { $_ -like 'bytes:*' } | Select-Object -First 1)
+        if ($k) { $bj.state.$k = 1 }
         [IO.File]::WriteAllText($bl, ($bj | ConvertTo-Json -Depth 6), (New-Object Text.UTF8Encoding($false)))
         $out11 = & node (Join-Path $Root 'core\immunity.mjs') 2>&1 | Out-String
-        Add-Probe '免疫抓过期快照' ($out11 -match 'snapshot-fresh') $(if ($out11 -match 'snapshot-fresh') { '报了 snapshot-fresh' } else { '基线拨到 40 小时前仍不报 → 快照检查是哑炮' })
+        Add-Probe '免疫抓过期快照' ($out11 -match 'snapshot-fresh') $(if ($out11 -match 'snapshot-fresh') { '报了 snapshot-fresh（旧 + 内容不符）' } else { '拨旧且内容不符仍不报 → 快照检查是哑炮' })
     } finally {
         Copy-Item -LiteralPath $blBak -Destination $bl -Force
         Remove-Item -LiteralPath $blBak -Force -ErrorAction SilentlyContinue

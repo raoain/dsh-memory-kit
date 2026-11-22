@@ -39,7 +39,7 @@ function Measure-Target($t) {
         'worklog'     { return @(Select-String -Path (Join-Path $nb '1-工作.md') -Pattern '^- \[' -Encoding UTF8).Count }
         'recall'      { return @(Get-Content (Join-Path $Root 'track\\读回.jsonl') -Encoding UTF8 | Where-Object { $_.Trim() }).Count }
         'converge'    { return @(Get-Content (Join-Path $Root 'track\\收敛.jsonl') -Encoding UTF8 | Where-Object { $_.Trim() }).Count }
-        'pending'     { return @(Select-String -Path (Join-Path $Root 'track\\待消化.md') -Pattern '^- \\[2026' -Encoding UTF8).Count }
+        'pending'     { return @(Select-String -Path (Get-CooPath 'pending') -Pattern '^- \\[2026' -Encoding UTF8).Count }
         'pins'        { return (Get-Content (Join-Path $Root 'state.json') -Raw -Encoding UTF8 | ConvertFrom-Json).pins.PSObject.Properties.Name.Count }
         'agentsbytes' { return (Get-Item (Join-Path $env:USERPROFILE '.dsh\\AGENTS.md')).Length }
         default       { return $null }

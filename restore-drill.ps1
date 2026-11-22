@@ -11,7 +11,7 @@
 #
 # 产出：
 #   1) 解压耗时、文件数、核心层字节与 sha 对比（备份 vs 当前）
-#   2) track\回档实验-待答.md —— 恢复态的核心全文 + 五道题，供"恢复后作答"
+#   2) track\misc\回档实验-待答.md —— 恢复态的核心全文 + 五道题，供"恢复后作答"
 #   3) 非 DryRun 时写 track\回档实验-<时间>.json（含 RTO / 核心 sha / 文件数）
 #
 # 判据（人判，不由脚本判）：
@@ -85,7 +85,7 @@ $todo += ''
 $todo += '## 五道题'
 $todo += ''
 foreach ($x in $q) { $todo += ('- ' + $x) }
-$todoPath = Join-Path $Root 'track\回档实验-待答.md'
+$todoPath = (Get-CooPath 'restoreDrill')
 [IO.File]::WriteAllText($todoPath, ($todo -join "`r`n") + "`r`n", $enc)
 Write-Host ''
 Write-Host ("  待答题已生成：{0}" -f $todoPath) -ForegroundColor Cyan
