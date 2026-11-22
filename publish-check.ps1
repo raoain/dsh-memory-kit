@@ -14,7 +14,8 @@ $rules = @(
   @{ name='草稿字样';    pat='草稿' },
   @{ name='arXiv编号';   pat='\b\d{4}\.\d{4,5}\b' },
   @{ name='TODO/待做';   pat='TODO|待做|下一版' },
-  @{ name='断号小节';    pat='^###\s*\d+\.\d+\s' }
+  @{ name='断号小节';    pat='^###\s*\d+\.\d+\s' },
+  @{ name='口语/脏字';   pat='他妈|他麻|你妈(?!妈)|我操|我曹|我槽|卧槽|沃槽|我擦|我靠|卧靠|妈的|傻逼|沙比|屌|哥们|艹' }
 )
 for ($i=0; $i -lt $lines.Count; $i++) {
   foreach ($r in $rules) {
